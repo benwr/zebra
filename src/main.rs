@@ -44,7 +44,13 @@ fn TabSelect(cx: Scope) -> Element {
             onmousedown: move |_| { desktop.drag(); },
             class: "tab_select",
             div {
-                class: "tab_choice inactive_tab",
+                class: {
+                    if let ActiveTab::MyKeys = active_tab {
+                        "tab_choice active_tab"
+                    } else {
+                        "tab_choice inactive_tab"
+                    }
+                },
                 "My Keys"
             }
             div {
