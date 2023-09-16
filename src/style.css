@@ -80,3 +80,7 @@ td.fingerprint {
 td.email {
   font-family: monospace;
 }
+
+td.actions {
+  text-align: right;
+}
