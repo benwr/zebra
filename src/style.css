@@ -38,8 +38,6 @@ nav.tab_select div.tab_choice:hover {
   color: #000;
 }
 
-div.contents {
-  /*padding: 0;*/
-  /*margin: 0;*/
+div {
   background: #eef;
 }
