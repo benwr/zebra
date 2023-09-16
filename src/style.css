@@ -52,3 +52,7 @@ div.contents {
   margin-top: 0;
   padding: 15px;
 }
+
+div.about {
+  text-align: center;
+}
