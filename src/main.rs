@@ -14,7 +14,10 @@ fn App(cx: Scope) -> Element {
         section {
             class: "spartacus",
             style { include_str!("style.css") }
-            About {}
+            div {
+                class: "contents",
+                About {}
+            }
         }
     })
 }
