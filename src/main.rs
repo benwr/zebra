@@ -142,6 +142,9 @@ fn MyKeys(cx: Scope) -> Element {
                             "Copy Public Key",
                         }
                         button {
+                            "Send To New Device"
+                        }
+                        button {
                             "Delete",
                         }
                     }
