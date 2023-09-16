@@ -285,7 +285,7 @@ fn Sign(cx: Scope) -> Element {
             thead {
                 tr {
                     th {
-                        "Include in Signature"
+                        "Include"
                     }
                     th {
                         "Fingerprint"
