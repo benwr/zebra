@@ -9,13 +9,12 @@ nav.tab_select div.tab_choice {
   background-color: #eef;
   padding: 4px;
   border: 1px solid black;
+  color: #666;
 }
 
 nav.tab_select div.tab_choice:hover {
-  display: inline;
-  border-top-left-radius: 4px;
-  border-top-right-radius: 4px;
   background-color: #ddf;
   padding: 4px;
   border: 1px solid black;
+  color: #000;
 }
