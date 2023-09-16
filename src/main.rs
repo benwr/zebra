@@ -90,7 +90,7 @@ fn TabSelect(cx: Scope) -> Element {
                 "Verify"
             }
             div {
-                onclick: move |_| {*use_shared_state::<ActiveTab>(cx).unwrap().write() = ActiveTab::Verify},
+                onclick: move |_| {*use_shared_state::<ActiveTab>(cx).unwrap().write() = ActiveTab::About},
                 class: {
                     if let ActiveTab::About = active_tab {
                         "tab_choice active_tab"
