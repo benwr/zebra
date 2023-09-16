@@ -1,0 +1,21 @@
+[package]
+name = "Spartacus"
+description = "A tool for creating and verifying ring signatures."
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "spartacus"
+path = "src/lib.rs"
+
+[[bin]]
+name = "Spartacus"
+path = "src/main.rs"
+
+[dependencies]
+dioxus = "0.4.0"
+dioxus-desktop = "0.4.0"
+
+[package.metadata.bundle]
+identifier = "me.w-r.spartacus"
+icon = ["spartacus_head.png"]

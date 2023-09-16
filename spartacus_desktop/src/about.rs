@@ -10,14 +10,14 @@ pub fn About(cx: Scope) -> Element {
             p {"Version 0.0.0"}
             p {"A tool for creating and verifying ring signatures."}
             img {
-                src: "../spartacus_head.png",
+                src: "/spartacus_desktop/spartacus_head.png",
                 height: "256px",
                 width: "256px",
             }
             p {
                 class: "copyright_info",
                 "App Logo adapted from "
-                a { 
+                a {
                     href: "https://www.flickr.com/photos/carolemage/8270400666",
                     "Spartacus, marble sculpture of Denis Foyatier (1830), Louvre Museum"
                 }
