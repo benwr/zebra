@@ -19,7 +19,7 @@ nav {
   overflow: show;
   height: 31px;
   border-bottom: 1px solid #aaa;
-  box-shadow: inset 0 3px 10px #ccc;
+  box-shadow: inset 0 3px 10px #999;
 }
 
 nav.tab_select div.tab_choice {
