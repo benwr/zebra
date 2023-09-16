@@ -356,7 +356,7 @@ fn Sign(cx: Scope) -> Element {
             }
         }
         br {}
-        button { "Sign and Copy" }
+        button { "Copy Signature" }
     })
 }
 
