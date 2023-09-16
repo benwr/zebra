@@ -13,6 +13,7 @@ HTML, body, div {
 
 nav {
   margin: 0;
+  box-sizing: border-box;
   padding: 0;
   padding-top: 15px;
   padding-left: 15px;
