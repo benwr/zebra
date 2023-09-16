@@ -9,11 +9,9 @@ fn main() {
 fn App(cx: Scope) -> Element {
     cx.render(rsx! {
         section {
-            TabSelect {}
-        }
-        section {
             class: "spartacus",
             style { include_str!("style.css") }
+            TabSelect {}
             div {
                 class: "contents",
                 About {}
