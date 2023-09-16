@@ -60,7 +60,7 @@ fn TabSelect(cx: Scope) -> Element {
                         "tab_choice inactive_tab"
                     }
                 },
-                "My Keys"
+                "My Keypairs"
             }
             div {
                 onclick: move |_| {*use_shared_state::<ActiveTab>(cx).unwrap().write() = ActiveTab::OtherKeys},
