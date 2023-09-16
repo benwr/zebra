@@ -228,7 +228,6 @@ fn OtherKeys(cx: Scope) -> Element {
                     }
                 }
                 tr {
-                        "Sam Bankman-Fried <sbf@ftx.us> (\"")"
                     td {
                         class: "fingerprint",
                         "Du&hpGhD@Ld6AVATQNSp"
