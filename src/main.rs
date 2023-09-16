@@ -39,6 +39,10 @@ fn TabSelect(cx: Scope) -> Element {
                 class: "tab_choice",
                 "Verify"
             }
+            div {
+                class: "tab_choice",
+                "About"
+            }
         }
     })
 }
