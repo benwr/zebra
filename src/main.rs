@@ -50,8 +50,11 @@ fn TabSelect(cx: Scope) -> Element {
 
 fn About(cx: Scope) -> Element {
     cx.render(rsx! {
-        h1 {"Spartacus"}
-        p {"A tool for ring signatures."}
-        p {"Version 0.0.0"}
+        div {
+            class: "about",
+            h1 {"Spartacus"}
+            p {"A tool for ring signatures."}
+            p {"Version 0.0.0"}
+        }
     })
 }
