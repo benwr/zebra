@@ -7,6 +7,8 @@ pub fn About(cx: Scope) -> Element {
         div {
             class: "about",
             h1 {"Spartacus"}
+            p {"Version 0.0.0"}
+            p {"A tool for creating and verifying ring signatures."}
             img {
                 src: "../spartacus_head.png",
                 height: "256px",
@@ -33,8 +35,6 @@ pub fn About(cx: Scope) -> Element {
                     "https://github.com/benwr/spartacus"
                 }
             }
-            p {"A tool for creating and verifying ring signatures."}
-            p {"Version 0.0.0"}
         }
     })
 }
