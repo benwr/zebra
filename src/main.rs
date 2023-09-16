@@ -208,6 +208,7 @@ fn OtherKeys(cx: Scope) -> Element {
                         "kurt.brown126@gmail.com"
                     }
                     td {
+                        class: "verified",
                         input {
                             "type": "checkbox",
                         }
