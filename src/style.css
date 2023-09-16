@@ -27,5 +27,7 @@ nav.tab_select div.tab_choice:hover {
 }
 
 div.contents {
+  padding: 0;
+  margin: 0;
   background: #ddf;
 }
