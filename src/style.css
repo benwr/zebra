@@ -39,8 +39,6 @@ nav.tab_select div.active_tab {
 }
 
 nav.tab_select div.tab_choice {
-  background-color: #eef;
-  color: #000;
   border-top: 1px solid #ccc;
   border-left: 1px solid #ccc;
   border-right: 1px solid #ccc;
