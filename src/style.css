@@ -2,6 +2,10 @@ body {
   font-family: sans-serif;
 }
 
+nav {
+  margin: 0;
+}
+
 nav.tab_select div.tab_choice {
   display: inline;
   border-top-left-radius: 6px;
