@@ -27,7 +27,13 @@ pub fn About(cx: Scope) -> Element {
             }
             p {"A tool for creating and verifying ring signatures."}
             p {"Version 0.0.0"}
-            p {"Copyright 2023 Ben Weinstein-Raun"}
+            p {
+                "Copyright 2023 Ben Weinstein-Raun. Source code available at "
+                a {
+                    href: "https://github.com/benwr/spartacus",
+                    "https://github.com/benwr/spartacus"
+                }
+            }
         }
     })
 }
