@@ -6,11 +6,8 @@ HTML, body {
 }
 
 nav {
-  /*
   margin: 0;
   padding: 0;
-  padding-top: 20px;
-  */
   width: 100%;
   border-bottom: 1px solid #000;
 }
