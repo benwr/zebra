@@ -359,18 +359,6 @@ fn Sign(cx: Scope) -> Element {
                             "type": "checkbox",
                         }
                     }
-                    td {
-                        class: "actions",
-                        button {
-                            "Copy Public Key",
-                        }
-                        button {
-                            "Delete",
-                        }
-                        button {
-                            "Verify By Email"
-                        }
-                    }
                 }
             }
         }
