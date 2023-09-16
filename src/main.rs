@@ -327,20 +327,13 @@ fn Sign(cx: Scope) -> Element {
                             checked: "true",
                         }
                     }
-                    td {
-                        class: "actions",
-                        button {
-                            "Copy Public Key",
-                        }
-                        button {
-                            "Delete",
-                        }
-                        button {
-                            "Verify By Email"
-                        }
-                    }
                 }
                 tr {
+                    td {
+                        input {
+                            "type": "checkbox",
+                        }
+                    }
                     td {
                         class: "fingerprint",
                         "Du&hpGhD@Ld6AVATQNSp"
