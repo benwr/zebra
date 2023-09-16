@@ -7,6 +7,7 @@ fn main() {
 }
 
 fn App(cx: Scope) -> Element {
+    use_window(cx);
     cx.render(rsx! {
         section {
             class: "spartacus",
