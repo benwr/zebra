@@ -21,7 +21,27 @@ fn App(cx: Scope) -> Element {
 
 fn TabSelect(cx: Scope) -> Element {
     cx.render(rsx! {
-
+        nav {
+            class: "tab_select",
+            ol {
+                li {
+                    class: "tab_choice",
+                    "My Keys"
+                }
+                li {
+                    class: "tab_choice",
+                    "Other Keys"
+                }
+                li {
+                    class: "tab_choice",
+                    "Sign"
+                }
+                li {
+                    class: "tab_choice",
+                    "Verify"
+                }
+            }
+        }
     })
 }
 
