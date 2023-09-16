@@ -152,7 +152,7 @@ fn MyKeys(cx: Scope) -> Element {
             }
         }
         button {
-            "Add new key"
+            "Create new keypair"
         }
     })
 }
