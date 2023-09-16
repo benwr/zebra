@@ -44,6 +44,10 @@ nav.tab_select div.tab_choice {
   border-right: 1px solid #aaa;
 }
 
+nav.tab_select div.inactive_tab {
+  border: 1px solid #aaa;
+}
+
 div.contents {
   margin-top: 0;
   padding: 15px;
