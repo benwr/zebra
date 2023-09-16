@@ -68,3 +68,7 @@ div.about {
 td {
   padding: 4px;
 }
+
+td.fingerprint {
+  font-family: monospace;
+}
