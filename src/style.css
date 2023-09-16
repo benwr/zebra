@@ -52,7 +52,7 @@ nav.tab_select div.tab_choice {
 }
 
 nav.tab_select div.inactive_tab {
-  border: 1px solid #aaa;
+  /*border: 1px solid #aaa;*/
 }
 
 div.contents {
