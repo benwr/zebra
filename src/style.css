@@ -6,6 +6,10 @@ HTML, body, div {
   background: #eef;
 }
 
+body {
+  border: 1px slid #000;
+}
+
 nav {
   margin: 0;
   padding: 0;
