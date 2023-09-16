@@ -6,6 +6,15 @@ fn main() {
     dioxus_desktop::launch(App);
 }
 
+#[derive(Clone, Debug)]
+enum ActiveTab {
+    MyKeys,
+    OtherKeys,
+    Sign,
+    Verify,
+    About,
+}
+
 fn App(cx: Scope) -> Element {
     use dioxus_desktop::tao::dpi::{LogicalSize, Size};
     let desktop = dioxus_desktop::use_window(cx);
@@ -22,15 +31,6 @@ fn App(cx: Scope) -> Element {
             }
         }
     })
-}
-
-#[derive(Clone, Debug)]
-enum SelectedTab {
-    MyKeys,
-    OtherKeys,
-    Sign,
-    Verify,
-    About,
 }
 
 fn TabSelect(cx: Scope) -> Element {
