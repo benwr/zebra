@@ -210,8 +210,7 @@ fn OtherKeys(cx: Scope) -> Element {
                     td {
                         class: "verified",
                         input {
-                            "type": "checkbox",
-                            checked: "true",
+                            "type": "date",
                         }
                     }
                     td {
