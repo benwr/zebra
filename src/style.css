@@ -9,8 +9,8 @@ nav.tab_select div.tab_choice {
   background-color: #eef;
   padding: 4px;
   margin-top: 10px;
-  border: 1px solid #666;
-  color: #666;
+  border: 1px solid #999;
+  color: #999;
 }
 
 nav.tab_select div.tab_choice:hover {
