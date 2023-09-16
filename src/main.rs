@@ -164,6 +164,9 @@ fn MyKeys(cx: Scope) -> Element {
         button {
             "Create New Keypair"
         }
+        button {
+            "Receive Keypair From Other Device"
+        }
     })
 }
 
