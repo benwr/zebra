@@ -53,7 +53,7 @@ nav.tab_select div.tab_choice {
 }
 
 nav.tab_select div.inactive_tab {
-  padding-bottom: -1px;
+  padding-bottom: -3px;
   border-bottom: 1px solid #aaa;
 }
 
