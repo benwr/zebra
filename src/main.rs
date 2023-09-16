@@ -240,7 +240,7 @@ fn Sign(cx: Scope) -> Element {
         "My Key: "
         select {
             option {
-                "jf^:GW)T=&^}}dg-$6VVm"
+                "jf^:GW)T=&^}}dg-$6VVm Ben Weinstein-Raun <b@w-r.me>"
             }
         }
     })
