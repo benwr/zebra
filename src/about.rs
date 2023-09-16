@@ -2,7 +2,7 @@
 
 use dioxus::prelude::*;
 
-fn About(cx: Scope) -> Element {
+pub fn About(cx: Scope) -> Element {
     cx.render(rsx! {
         div {
             class: "about",
