@@ -2,6 +2,6 @@ body {
   font-family: sans-serif;
 }
 
-nav.tab_select ul.main_tabs li {
+nav.tab_select div.tab_choice {
   display: inline;
 }
