@@ -24,6 +24,7 @@ fn App(cx: Scope) -> Element {
 fn TabSelect(cx: Scope) -> Element {
     cx.render(rsx! {
         nav {
+            onmousedown: move |_| { desktop.drag_window(); },
             class: "tab_select",
             div {
                 class: "tab_choice inactive_tab",
@@ -50,6 +51,10 @@ fn TabSelect(cx: Scope) -> Element {
 }
 
 fn Sign(cx: Scope) -> Element {
+    cx.render(rsx! {
+        div {
+        }
+    })
 }
 
 fn About(cx: Scope) -> Element {
