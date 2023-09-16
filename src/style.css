@@ -20,7 +20,7 @@ nav {
   overflow: show;
   height: 30px;
   min-height: 30px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #aaa;
 }
 
 nav.tab_select div.tab_choice {
