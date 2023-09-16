@@ -211,6 +211,40 @@ fn OtherKeys(cx: Scope) -> Element {
                         class: "verified",
                         input {
                             "type": "checkbox",
+                            checked: true,
+                        }
+                    }
+                    td {
+                        class: "actions",
+                        button {
+                            "Copy Public Key",
+                        }
+                        button {
+                            "Delete",
+                        }
+                        button {
+                            "Verify By Email"
+                        }
+                    }
+                }
+                tr {
+                        "Sam Bankman-Fried <sbf@ftx.us> (\"")"
+                    td {
+                        class: "fingerprint",
+                        "Du&hpGhD@Ld6AVATQNSp"
+                    }
+                    td {
+                        class: "name",
+                        "Sam Bankman-Fried"
+                    }
+                    td {
+                        class: "email",
+                        "sbf@ftx.us"
+                    }
+                    td {
+                        class: "verified",
+                        input {
+                            "type": "checkbox",
                         }
                     }
                     td {
@@ -246,7 +280,24 @@ fn Sign(cx: Scope) -> Element {
             }
         }
         "Other Keys: "
-        table {
+        ol {
+            li {
+                select {
+                    option {
+                        "Kurt Brown <kurt.brown126@gmail.com> (\"48GRzYT9kxSN8cfM39^#\")"
+                    }
+                }
+            }
+            li {
+                select {
+                    option {
+                        "Sam Bankman-Fried <sbf@ftx.us> (\"Du&hpGhD@Ld6AVATQNSp\")"
+                    }
+                    option {
+                        "Kurt Brown <kurt.brown126@gmail.com> (\"48GRzYT9kxSN8cfM39^#\")"
+                    }
+                }
+            }
         }
     })
 }
