@@ -135,7 +135,7 @@ fn MyKeys(cx: Scope) -> Element {
             tbody {
                 tr {
                     td {
-                        "fp:jf^:GW)T=&^}dg-$6VVm"
+                        "fp:jf^:GW)T=&^\}dg-$6VVm"
                     }
                     td {
                         "Ben Weinstein-Raun"
