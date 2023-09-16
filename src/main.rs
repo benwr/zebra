@@ -54,19 +54,45 @@ fn TabSelect(cx: Scope) -> Element {
                 "My Keys"
             }
             div {
-                class: "tab_choice inactive_tab",
+                class: {
+                    if let ActiveTab::OtherKeys = active_tab {
+                        "tab_choice active_tab"
+                    } else {
+                        "tab_choice inactive_tab"
+                    }
+                },
                 "Other Keys"
             }
             div {
+                class: {
+                    if let ActiveTab::Sign = active_tab {
+                        "tab_choice active_tab"
+                    } else {
+                        "tab_choice inactive_tab"
+                    }
+                },
                 class: "tab_choice inactive_tab",
                 "Sign"
             }
             div {
+                class: {
+                    if let ActiveTab::Verify = active_tab {
+                        "tab_choice active_tab"
+                    } else {
+                        "tab_choice inactive_tab"
+                    }
+                },
                 class: "tab_choice inactive_tab",
                 "Verify"
             }
             div {
-                class: "tab_choice active_tab",
+                class: {
+                    if let ActiveTab::About = active_tab {
+                        "tab_choice active_tab"
+                    } else {
+                        "tab_choice inactive_tab"
+                    }
+                },
                 "About"
             }
         }
