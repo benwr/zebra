@@ -9,7 +9,7 @@ fn main() {
 fn App(cx: Scope) -> Element {
     cx.render(rsx! {
         div {
-            "style": "font-family: sans-serif;"
+            "style": "font-family: sans-serif;",
             About {}
         }
     })
