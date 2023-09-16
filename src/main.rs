@@ -88,6 +88,13 @@ fn Sign(cx: Scope) -> Element {
     })
 }
 
+fn Verify(cx: Scope) -> Element {
+    cx.render(rsx! {
+        div {
+        }
+    })
+}
+
 fn About(cx: Scope) -> Element {
     cx.render(rsx! {
         div {
