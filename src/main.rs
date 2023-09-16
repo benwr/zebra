@@ -8,7 +8,7 @@ fn main() {
 
 fn App(cx: Scope) -> Element {
     cx.render(rsx! {
-        div { "SPARTACVSSVM" }
+        About {}
     })
 }
 
