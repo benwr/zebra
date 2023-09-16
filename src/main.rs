@@ -8,8 +8,9 @@ fn main() {
 
 fn App(cx: Scope) -> Element {
     cx.render(rsx! {
-        div {
-            "style": "font-family: sans-serif;",
+        section {
+            class: "spartacus",
+            style { include_str!("style.css") }
             About {}
         }
     })
