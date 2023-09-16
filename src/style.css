@@ -14,15 +14,15 @@ nav {
 }
 
 nav.tab_select div.tab_choice {
-  display: inline;
+  /*display: inline;*/
   border-top-left-radius: 6px;
   border-top-right-radius: 6px;
   background-color: #ddf;
-  padding: 6px;
+  /*padding: 6px;*/
   border: 1px solid #999;
   border-bottom: 1px solid #000;
   color: #999;
-  margin: 0;
+  /*margin: 0;*/
 }
 
 nav.tab_select div.active_tab {
@@ -30,7 +30,7 @@ nav.tab_select div.active_tab {
   border: 1px solid #000;
   color: #000;
   border-bottom: 1px solid #eef;
-  margin: 0;
+  /*margin: 0;*/
 }
 
 nav.tab_select div.tab_choice:hover {
@@ -39,7 +39,7 @@ nav.tab_select div.tab_choice:hover {
 }
 
 div.contents {
-  padding: 0;
-  margin: 0;
+  /*padding: 0;*/
+  /*margin: 0;*/
   background: #eef;
 }
