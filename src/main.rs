@@ -8,13 +8,15 @@ fn main() {
 
 fn App(cx: Scope) -> Element {
     cx.render(rsx! {
-        About {}
+        div {
+            "style": "font-family: sans-serif;"
+            About {}
+        }
     })
 }
 
 fn About(cx: Scope) -> Element {
     cx.render(rsx! {
-        "style": "font-family: sans-serif;"
         h1 {"Spartacus"}
         p {"A tool for ring signatures."}
         p {"Version 0.0.0"}
