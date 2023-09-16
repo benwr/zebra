@@ -14,7 +14,7 @@ nav {
 }
 
 nav.tab_select div.tab_choice {
-  /*display: inline;*/
+  display: inline;
   border-top-left-radius: 6px;
   border-top-right-radius: 6px;
   background-color: #ddf;
