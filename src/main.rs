@@ -55,7 +55,7 @@ fn TabSelect(cx: Scope) -> Element {
                 "My Keys"
             }
             div {
-                onclick: move |_| {use_shared_state::<ActiveTab>(cx).unwrap().write(ActiveTab::OtherKeys)},
+                onclick: move |_| {*use_shared_state::<ActiveTab>(cx).unwrap().write() = ActiveTab::OtherKeys},
                 class: {
                     if let ActiveTab::OtherKeys = active_tab {
                         "tab_choice active_tab"
