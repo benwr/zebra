@@ -151,6 +151,9 @@ fn MyKeys(cx: Scope) -> Element {
                 }
             }
         }
+        button {
+            "Add new key"
+        }
     })
 }
 
