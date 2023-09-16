@@ -8,3 +8,5 @@ dioxus = "0.4.0"
 dioxus-desktop = "0.4.0"
 
 [package.metadata.bundle]
+identifier = "me.w-r.spartacus"
+icon = "spartacus_head.png"
