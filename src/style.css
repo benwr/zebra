@@ -65,6 +65,10 @@ div.about {
   text-align: center;
 }
 
+table {
+  width: 100%;
+}
+
 td {
   padding: 4px;
 }
