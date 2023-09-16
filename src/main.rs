@@ -67,6 +67,20 @@ fn TabSelect(cx: Scope) -> Element {
     })
 }
 
+fn MyKeys(cx: Scope) -> Element {
+    cx.render(rsx! {
+        div {
+        }
+    })
+}
+
+fn OtherKeys(cx: Scope) -> Element {
+    cx.render(rsx! {
+        div {
+        }
+    })
+}
+
 fn Sign(cx: Scope) -> Element {
     cx.render(rsx! {
         div {
