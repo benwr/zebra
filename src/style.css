@@ -17,4 +17,5 @@ nav.tab_select div.tab_choice:hover {
   padding: 4px;
   border: 1px solid black;
   color: #000;
+  cursor: pointer;
 }
