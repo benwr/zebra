@@ -10,7 +10,7 @@ fn App(cx: Scope) -> Element {
     use dioxus_desktop::tao::dpi::{LogicalSize, Size};
     let desktop = dioxus_desktop::use_window(cx);
     desktop.set_title("Spartacus");
-    desktop.set_min_inner_size(Some(Size::Logical(LogicalSize{width: 768.0, height: 256.0})));
+    desktop.set_min_inner_size(Some(Size::Logical(LogicalSize{width: 640.0, height: 256.0})));
     cx.render(rsx! {
         section {
             class: "spartacus",
