@@ -7,7 +7,7 @@ fn main() {
 }
 
 fn App(cx: Scope) -> Element {
-    dioxus_desktop::use_window(cx);
+    let desktop_service = dioxus_desktop::use_window(cx);
     cx.render(rsx! {
         section {
             class: "spartacus",
