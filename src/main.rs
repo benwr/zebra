@@ -6,7 +6,7 @@ fn main() {
     dioxus_desktop::launch(App);
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 enum ActiveTab {
     MyKeys,
     OtherKeys,
