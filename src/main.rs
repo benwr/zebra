@@ -49,7 +49,7 @@ fn TabSelect(cx: Scope) -> Element {
     })
 }
 
-fn Sign(cx: Scope -> Element {
+fn Sign(cx: Scope) -> Element {
 }
 
 fn About(cx: Scope) -> Element {
