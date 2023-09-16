@@ -2,11 +2,11 @@
   --main-bg-color: #fcfcff;
 }
 
-HTML, body, div {
+HTML, body, div, nav {
   font-family: sans-serif;
-  margin: 0px;
-  padding: 0px;
-  border: 0px;
+  margin: 0;
+  padding: 0;
+  border: 0;
   background: var(--main-bg-color);
   box-sizing: border-box;
 }
