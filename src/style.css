@@ -72,3 +72,7 @@ td {
 td.fingerprint {
   font-family: monospace;
 }
+
+td.email {
+  font-family: monospace;
+}
