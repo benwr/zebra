@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use dioxus::prelude::{Element, Scope, dioxus_elements, rsx};
+use dioxus::prelude::{Element, Scope, dioxus_elements, fc_to_builder, rsx};
 
 fn main() {
     dioxus_desktop::launch(App);
