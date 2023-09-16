@@ -132,10 +132,16 @@ fn MyKeys(cx: Scope) -> Element {
             tbody {
                 tr {
                     td {
+                        "Ben Weinstein-Raun <b@w-r.me>"
                     }
                     td {
+                        "013440fc2058a031b"
                     }
                     td {
+                        button {
+                            "Copy Public Key",
+                            "Delete",
+                        }
                     }
                 }
             }
