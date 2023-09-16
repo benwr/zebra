@@ -30,7 +30,15 @@ fn App(cx: Scope) -> Element {
             TabSelect {}
             div {
                 class: "contents",
-                About {}
+                {
+                    match *use_shared_state::<ActiveTab>(cx).unwrap().read() {
+                        ActiveTab::MyKeys => rsx! { MyKeys },
+                        ActiveTab::OtherKeys => rsx! { OtherKeys },
+                        ActiveTab::Sign => rsx! { Sign },
+                        ActiveTab::Verify => rsx! { Verify },
+                        ActiveTab::About => rsx! { About },
+                    }
+                }
             }
         }
     })
