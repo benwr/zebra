@@ -13,6 +13,7 @@ HTML, body, div {
 nav {
   margin: 0;
   padding: 0;
+  padding-left: 10px;
   padding-top: 15px;
   width: 100%;
   background: #e9e6dd;
