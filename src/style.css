@@ -33,6 +33,12 @@ nav.tab_select div.active_tab {
   color: #000;
 }
 
+nav.tab_select div.inactive_tab {
+  background-color: #eef;
+  color: #000;
+  border-top: 1px solid #ccc;
+}
+
 nav.tab_select div.tab_choice:hover {
   cursor: pointer;
   color: #000;
