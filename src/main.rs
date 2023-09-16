@@ -280,21 +280,96 @@ fn Sign(cx: Scope) -> Element {
         }
         br {}
         "Other Keys: "
-        ol {
-            li {
-                select {
-                    option {
-                        "Kurt Brown <kurt.brown126@gmail.com> (\"48GRzYT9kxSN8cfM39^#\")"
+        table {
+            class: "otherkeys",
+            thead {
+                tr {
+                    th {
+                        "Include in Signature"
+                    }
+                    th {
+                        "Fingerprint"
+                    }
+                    th {
+                        "Name"
+                    }
+                    th {
+                        "Email"
+                    }
+                    th {
+                        "Verified"
                     }
                 }
             }
-            li {
-                select {
-                    option {
-                        "Sam Bankman-Fried <sbf@ftx.us> (\"Du&hpGhD@Ld6AVATQNSp\")"
+            tbody {
+                tr {
+                    td {
+                        input {
+                            "type": "checkbox",
+                        }
                     }
-                    option {
-                        "Kurt Brown <kurt.brown126@gmail.com> (\"48GRzYT9kxSN8cfM39^#\")"
+                    td {
+                        class: "fingerprint",
+                        "48GRzYT9kxSN8cfM39^#"
+                    }
+                    td {
+                        class: "name",
+                        "Kurt Brown"
+                    }
+                    td {
+                        class: "email",
+                        "kurt.brown126@gmail.com"
+                    }
+                    td {
+                        class: "verified",
+                        input {
+                            "type": "checkbox",
+                            checked: "true",
+                        }
+                    }
+                    td {
+                        class: "actions",
+                        button {
+                            "Copy Public Key",
+                        }
+                        button {
+                            "Delete",
+                        }
+                        button {
+                            "Verify By Email"
+                        }
+                    }
+                }
+                tr {
+                    td {
+                        class: "fingerprint",
+                        "Du&hpGhD@Ld6AVATQNSp"
+                    }
+                    td {
+                        class: "name",
+                        "Sam Bankman-Fried"
+                    }
+                    td {
+                        class: "email",
+                        "sbf@ftx.us"
+                    }
+                    td {
+                        class: "verified",
+                        input {
+                            "type": "checkbox",
+                        }
+                    }
+                    td {
+                        class: "actions",
+                        button {
+                            "Copy Public Key",
+                        }
+                        button {
+                            "Delete",
+                        }
+                        button {
+                            "Verify By Email"
+                        }
                     }
                 }
             }
