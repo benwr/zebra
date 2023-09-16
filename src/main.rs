@@ -2,6 +2,8 @@
 
 use dioxus::prelude::*;
 
+use spartacus::about;
+
 fn main() {
     dioxus_desktop::launch(App);
 }
