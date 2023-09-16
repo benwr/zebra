@@ -236,6 +236,7 @@ fn OtherKeys(cx: Scope) -> Element {
 
 fn Sign(cx: Scope) -> Element {
     cx.render(rsx! {
+        "Text to sign: "
         textarea {}
         br {}
         "My Key: "
