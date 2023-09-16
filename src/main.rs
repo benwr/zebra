@@ -332,8 +332,7 @@ fn Sign(cx: Scope) -> Element {
                     td {
                         class: "verified",
                         input {
-                            "type": "checkbox",
-                            checked: "true",
+                            "type": "date",
                         }
                     }
                 }
@@ -358,7 +357,7 @@ fn Sign(cx: Scope) -> Element {
                     td {
                         class: "verified",
                         input {
-                            "type": "checkbox",
+                            "type": "date",
                         }
                     }
                 }
