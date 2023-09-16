@@ -13,8 +13,8 @@ nav {
   width: 100%;
   background: #fff;
   overflow: show;
-  height: 25px;
-  min-height: 25px;
+  height: 24px;
+  min-height: 24px;
 }
 
 nav.tab_select div.tab_choice {
