@@ -23,7 +23,7 @@ pub fn About(cx: Scope) -> Element {
                     href: "https://creativecommons.org/licenses/by-sa/2.0/",
                     "Creative Commons Attribution-ShareAlike 2.0 Generic License"
                 }
-                ")"
+                ".)"
             }
             p {"A tool for creating and verifying ring signatures."}
             p {"Version 0.0.0"}
