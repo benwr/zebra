@@ -5,6 +5,9 @@ body {
 nav {
   margin: 0;
 }
+section {
+  margin: 0;
+}
 
 nav.tab_select div.tab_choice {
   display: inline;
