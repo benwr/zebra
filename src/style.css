@@ -13,13 +13,6 @@ nav {
   border-bottom: 1px solid #000;
 }
 
-/*
-section {
-  margin: 0;
-  padding: 0;
-}
-*/
-
 nav.tab_select div.tab_choice {
   display: inline;
   border-top-left-radius: 6px;
