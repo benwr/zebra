@@ -64,3 +64,7 @@ div.contents {
 div.about {
   text-align: center;
 }
+
+td {
+  padding: 4px;
+}
