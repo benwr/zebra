@@ -25,6 +25,7 @@ nav.tab_select div.tab_choice {
   margin: 0;
   padding: 6px;
   color: #999;
+  height: 27px;
 }
 
 nav.tab_select div.active_tab {
