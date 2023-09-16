@@ -32,11 +32,11 @@ fn App(cx: Scope) -> Element {
                 class: "contents",
                 {
                     match *use_shared_state::<ActiveTab>(cx).unwrap().read() {
-                        ActiveTab::MyKeys => rsx! { MyKeys },
-                        ActiveTab::OtherKeys => rsx! { OtherKeys },
-                        ActiveTab::Sign => rsx! { Sign },
-                        ActiveTab::Verify => rsx! { Verify },
-                        ActiveTab::About => rsx! { About },
+                        ActiveTab::MyKeys => rsx! { MyKeys {} },
+                        ActiveTab::OtherKeys => rsx! { OtherKeys {} },
+                        ActiveTab::Sign => rsx! { Sign {} },
+                        ActiveTab::Verify => rsx! { Verify {} },
+                        ActiveTab::About => rsx! { About {} },
                     }
                 }
             }
