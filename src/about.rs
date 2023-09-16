@@ -25,15 +25,16 @@ pub fn About(cx: Scope) -> Element {
                     "Creative Commons Attribution-ShareAlike 2.0 Generic License"
                 }
             }
-            p {"A tool for creating and verifying ring signatures."}
-            p {"Version 0.0.0"}
             p {
+                class: "copyright_info",
                 "All other content is Copyright 2023 Kurt Brown. Source code available at "
                 a {
                     href: "https://github.com/benwr/spartacus",
                     "https://github.com/benwr/spartacus"
                 }
             }
+            p {"A tool for creating and verifying ring signatures."}
+            p {"Version 0.0.0"}
         }
     })
 }
