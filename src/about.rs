@@ -27,7 +27,7 @@ pub fn About(cx: Scope) -> Element {
             }
             p {
                 class: "copyright_info",
-                "All other content is written by Ben Weinstein-Raun, and Copyright of Kurt Brown 2023. Source available at "
+                "All other content is written by Ben Weinstein-Raun, and Copyright of Kurt Brown 2023. Source code available at "
                 a {
                     href: "https://github.com/benwr/spartacus",
                     "https://github.com/benwr/spartacus"
