@@ -8,4 +8,5 @@ nav.tab_select div.tab_choice {
   border-top-right-radius: 4px;
   background-color: #eef;
   padding: 4px;
+  border: 1px solid black;
 }
