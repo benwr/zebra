@@ -41,7 +41,7 @@ nav.tab_select div.tab_choice:hover {
 }
 
 nav.tab_select div.active_tab {
-  background-color: #eef;
+  background-color: var(--main-bg-color);
   color: #000;
 }
 
@@ -58,6 +58,7 @@ nav.tab_select div.inactive_tab {
 div.contents {
   margin-top: 0;
   padding: 15px;
+  background: var(--main-bg-color);
 }
 
 div.about {
