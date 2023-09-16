@@ -7,7 +7,6 @@ fn main() {
 }
 
 fn App(cx: Scope) -> Element {
-    let desktop_service = dioxus_desktop::use_window(cx);
     cx.render(rsx! {
         section {
             class: "spartacus",
@@ -22,6 +21,7 @@ fn App(cx: Scope) -> Element {
 }
 
 fn TabSelect(cx: Scope) -> Element {
+    let desktop_service = dioxus_desktop::use_window(cx);
     cx.render(rsx! {
         nav {
             onmousedown: move |_| { desktop.drag_window(); },
