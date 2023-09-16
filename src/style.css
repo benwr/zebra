@@ -33,6 +33,7 @@ nav.tab_select div.tab_choice {
   height: 24px;
   width: 100px;
   text-align: center;
+  font-style: bold;
 }
 
 nav.tab_select div.tab_choice:hover {
