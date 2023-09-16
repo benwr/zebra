@@ -135,15 +135,19 @@ fn MyKeys(cx: Scope) -> Element {
             tbody {
                 tr {
                     td {
+                        class: "fingerprint",
                         "fp:jf^:GW)T=&^}}dg-$6VVm"
                     }
                     td {
+                        class: "name",
                         "Ben Weinstein-Raun"
                     }
                     td {
+                        class: "email",
                         "b@w-r.me"
                     }
                     td {
+                        class: "actions",
                         button {
                             "Copy Public Key",
                         }
