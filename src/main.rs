@@ -17,5 +17,5 @@ fn About(cx: Scope) -> Element {
         h1 {"Spartacus"}
         p {"A tool for ring signatures."}
         p {"Version 0.0.0"}
-    }
+    })
 }
