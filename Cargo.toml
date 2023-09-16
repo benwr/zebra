@@ -1,5 +1,6 @@
 [package]
 name = "Spartacus"
+description = "A tool for creating and verifying ring signatures."
 version = "0.1.0"
 edition = "2021"
 
