@@ -2,7 +2,7 @@
 
 use dioxus::prelude::*;
 
-use crate::about::About;
+use spartacus::about::About;
 
 fn main() {
     dioxus_desktop::launch(App);
