@@ -209,7 +209,7 @@ fn OtherKeys(cx: Scope) -> Element {
                     }
                     td {
                         input {
-                            type_: "checkbox",
+                            type: "checkbox",
                         }
                     }
                     td {
