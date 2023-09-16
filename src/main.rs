@@ -131,6 +131,12 @@ fn MyKeys(cx: Scope) -> Element {
             }
             tbody {
                 tr {
+                    td {
+                    }
+                    td {
+                    }
+                    td {
+                    }
                 }
             }
         }
