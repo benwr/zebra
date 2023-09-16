@@ -10,6 +10,7 @@ nav.tab_select div.tab_choice {
   padding: 6px;
   margin-top: 10px;
   border: 1px solid #999;
+  border-bottom: 1px solid #000;
   color: #999;
 }
 
