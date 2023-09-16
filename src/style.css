@@ -34,6 +34,7 @@ nav.tab_select div.tab_choice {
   color: #999;
   height: 27px;
   min-width: 50px;
+  text-align: center;
 }
 
 nav.tab_select div.tab_choice:hover {
