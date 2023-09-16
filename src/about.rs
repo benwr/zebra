@@ -13,7 +13,7 @@ pub fn About(cx: Scope) -> Element {
                 width: "256px",
             }
             p {
-                "(App Logo adapted from "
+                "App Logo adapted from "
                 a { 
                     href: "https://www.flickr.com/photos/carolemage/8270400666",
                     "Spartacus, marble sculpture of Denis Foyatier (1830), Louvre Museum"
@@ -23,7 +23,6 @@ pub fn About(cx: Scope) -> Element {
                     href: "https://creativecommons.org/licenses/by-sa/2.0/",
                     "Creative Commons Attribution-ShareAlike 2.0 Generic License"
                 }
-                ".)"
             }
             p {"A tool for creating and verifying ring signatures."}
             p {"Version 0.0.0"}
