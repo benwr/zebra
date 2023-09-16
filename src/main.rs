@@ -24,6 +24,15 @@ fn App(cx: Scope) -> Element {
     })
 }
 
+#[derive(Clone, Debug)]
+enum SelectedTab {
+    MyKeys,
+    OtherKeys,
+    Sign,
+    Verify,
+    About,
+}
+
 fn TabSelect(cx: Scope) -> Element {
     let desktop = dioxus_desktop::use_window(cx);
     cx.render(rsx! {
