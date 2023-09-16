@@ -140,6 +140,8 @@ fn MyKeys(cx: Scope) -> Element {
                     td {
                         button {
                             "Copy Public Key",
+                        }
+                        button {
                             "Delete",
                         }
                     }
