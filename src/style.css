@@ -12,6 +12,7 @@ nav {
   padding-top: 15px;
   width: 100%;
   background: #fff;
+  overflow: show;
 }
 
 nav.tab_select div.tab_choice {
