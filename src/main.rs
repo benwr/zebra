@@ -64,7 +64,7 @@ fn About(cx: Scope) -> Element {
         div {
             class: "about",
             h1 {"Spartacus"}
-            p {"A tool for ring signatures."}
+            p {"A tool for creating and verifying ring signatures."}
             p {"Version 0.0.0"}
         }
     })
