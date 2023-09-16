@@ -25,19 +25,19 @@ fn TabSelect(cx: Scope) -> Element {
         nav {
             class: "tab_select",
             div {
-                class: "tab_choice",
+                class: "tab_choice inactive_tab",
                 "My Keys"
             }
             div {
-                class: "tab_choice",
+                class: "tab_choice inactive_tab",
                 "Other Keys"
             }
             div {
-                class: "tab_choice",
+                class: "tab_choice inactive_tab",
                 "Sign"
             }
             div {
-                class: "tab_choice",
+                class: "tab_choice inactive_tab",
                 "Verify"
             }
             div {
