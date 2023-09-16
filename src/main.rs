@@ -114,7 +114,25 @@ fn TabSelect(cx: Scope) -> Element {
 
 fn MyKeys(cx: Scope) -> Element {
     cx.render(rsx! {
-        div {
+        table {
+            class: "mykeys",
+            thead {
+                tr {
+                    th {
+                        "Identity"
+                    }
+                    th {
+                        "Fingerprint"
+                    }
+                    th {
+                        "Actions"
+                    }
+                }
+            }
+            tbody {
+                tr {
+                }
+            }
         }
     })
 }
