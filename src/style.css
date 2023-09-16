@@ -21,16 +21,12 @@ nav.tab_select div.tab_choice {
   background-color: #ddf;
   margin: 0;
   padding: 6px;
-  border: 1px solid #999;
-  border-bottom: 1px solid #000;
   color: #999;
 }
 
 nav.tab_select div.active_tab {
   background-color: #eef;
-  border: 1px solid #000;
   color: #000;
-  border-bottom: 1px solid #eef;
 }
 
 nav.tab_select div.tab_choice:hover {
@@ -41,5 +37,4 @@ nav.tab_select div.tab_choice:hover {
 div.contents {
   margin-top: 0;
   padding: 15px;
-  border: 1px solid #000;
 }
