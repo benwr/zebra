@@ -44,6 +44,7 @@ fn TabSelect(cx: Scope) -> Element {
             onmousedown: move |_| { desktop.drag(); },
             class: "tab_select",
             div {
+                onclick: move |_| {},
                 class: {
                     if let ActiveTab::MyKeys = active_tab {
                         "tab_choice active_tab"
@@ -54,6 +55,7 @@ fn TabSelect(cx: Scope) -> Element {
                 "My Keys"
             }
             div {
+                onclick: move |_| {},
                 class: {
                     if let ActiveTab::OtherKeys = active_tab {
                         "tab_choice active_tab"
@@ -64,6 +66,7 @@ fn TabSelect(cx: Scope) -> Element {
                 "Other Keys"
             }
             div {
+                onclick: move |_| {},
                 class: {
                     if let ActiveTab::Sign = active_tab {
                         "tab_choice active_tab"
@@ -75,6 +78,7 @@ fn TabSelect(cx: Scope) -> Element {
                 "Sign"
             }
             div {
+                onclick: move |_| {},
                 class: {
                     if let ActiveTab::Verify = active_tab {
                         "tab_choice active_tab"
@@ -86,6 +90,7 @@ fn TabSelect(cx: Scope) -> Element {
                 "Verify"
             }
             div {
+                onclick: move |_| {},
                 class: {
                     if let ActiveTab::About = active_tab {
                         "tab_choice active_tab"
