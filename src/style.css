@@ -83,6 +83,7 @@ td.name {
 
 td.email {
   font-family: monospace;
+  text-align: center;
 }
 
 td.actions {
