@@ -30,7 +30,7 @@ nav.tab_select div.tab_choice {
   border-top-right-radius: 10px;
   background-color: #ddf;
   margin: 0;
-  /*padding: 6px;*/
+  padding-top: 6px;
   color: #999;
   height: 24px;
   min-width: 50px;
