@@ -11,3 +11,11 @@ fn App(cx: Scope) -> Element {
         div { "SPARTACVSSVM" }
     })
 }
+
+fn About(cx: Scope) -> Element {
+    cx.render(rsx! {
+        h1 {"Spartacus"}
+        p {"A tool for ring signatures."}
+        p {"Version 0.0.0"}
+    }
+}
