@@ -2,6 +2,8 @@
 
 use dioxus::prelude::*;
 
+use spartacus::about::About;
+
 fn main() {
     dioxus_desktop::launch(App);
 }
@@ -210,8 +212,7 @@ fn OtherKeys(cx: Scope) -> Element {
                     td {
                         class: "verified",
                         input {
-                            "type": "checkbox",
-                            checked: "true",
+                            "type": "date",
                         }
                     }
                     td {
@@ -243,7 +244,7 @@ fn OtherKeys(cx: Scope) -> Element {
                     td {
                         class: "verified",
                         input {
-                            "type": "checkbox",
+                            "type": "date",
                         }
                     }
                     td {
@@ -262,7 +263,16 @@ fn OtherKeys(cx: Scope) -> Element {
             }
         }
         button {
-            "Import Public Key"
+            "Add Public Key"
+        }
+        button {
+            "Import Key List"
+        }
+        button {
+            "Delete Selected"
+        }
+        button {
+            "Export Selected"
         }
     })
 }
@@ -323,8 +333,7 @@ fn Sign(cx: Scope) -> Element {
                     td {
                         class: "verified",
                         input {
-                            "type": "checkbox",
-                            checked: "true",
+                            "type": "date",
                         }
                     }
                 }
@@ -349,7 +358,7 @@ fn Sign(cx: Scope) -> Element {
                     td {
                         class: "verified",
                         input {
-                            "type": "checkbox",
+                            "type": "date",
                         }
                     }
                 }
@@ -363,17 +372,6 @@ fn Sign(cx: Scope) -> Element {
 fn Verify(cx: Scope) -> Element {
     cx.render(rsx! {
         div {
-        }
-    })
-}
-
-fn About(cx: Scope) -> Element {
-    cx.render(rsx! {
-        div {
-            class: "about",
-            h1 {"Spartacus"}
-            p {"A tool for creating and verifying ring signatures."}
-            p {"Version 0.0.0"}
         }
     })
 }
