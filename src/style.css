@@ -16,7 +16,7 @@ nav.tab_select div.tab_choice {
   display: inline;
   border-top-left-radius: 6px;
   border-top-right-radius: 6px;
-  background-color: #eef;
+  background-color: #ddf;
   padding: 6px;
   border: 1px solid #999;
   border-bottom: 1px solid #000;
@@ -25,10 +25,10 @@ nav.tab_select div.tab_choice {
 }
 
 nav.tab_select div.active_tab {
-  background-color: #ddf;
+  background-color: #eef;
   border: 1px solid #000;
   color: #000;
-  border-bottom: 1px solid #ddf;
+  border-bottom: 1px solid #eef;
   margin: 0;
 }
 
@@ -40,5 +40,5 @@ nav.tab_select div.tab_choice:hover {
 div.contents {
   padding: 0;
   margin: 0;
-  background: #ddf;
+  background: #eef;
 }
