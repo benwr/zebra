@@ -37,6 +37,7 @@ nav.tab_select div.tab_choice:hover {
 }
 
 div.contents {
+  margin-top: 0;
   border: 1px solid #000;
   background: #eef;
 }
