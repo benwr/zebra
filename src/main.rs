@@ -221,6 +221,9 @@ fn OtherKeys(cx: Scope) -> Element {
                         button {
                             "Delete",
                         }
+                        button {
+                            "Verify By Email"
+                        }
                     }
                 }
             }
