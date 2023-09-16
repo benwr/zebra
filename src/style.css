@@ -1,9 +1,13 @@
+:root {
+  --main-bg-color: #fcfcff;
+}
+
 HTML, body, div {
   font-family: sans-serif;
   margin: 0px;
   padding: 0px;
   border: 0px;
-  background: #fefeff;
+  background: var(--main-bg-color);
 }
 
 nav {
