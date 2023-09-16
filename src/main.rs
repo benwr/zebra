@@ -262,7 +262,16 @@ fn OtherKeys(cx: Scope) -> Element {
             }
         }
         button {
-            "Import Public Key"
+            "Add Public Key"
+        }
+        button {
+            "Import Key List"
+        }
+        button {
+            "Delete Selected"
+        }
+        button {
+            "Export Selected"
         }
     })
 }
