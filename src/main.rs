@@ -38,6 +38,7 @@ fn App(cx: Scope) -> Element {
 
 fn TabSelect(cx: Scope) -> Element {
     let desktop = dioxus_desktop::use_window(cx);
+    let active_tab = use_shared_state::<ActiveTab>(cx).unwrap();
     cx.render(rsx! {
         nav {
             onmousedown: move |_| { desktop.drag(); },
