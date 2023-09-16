@@ -40,7 +40,7 @@ fn TabSelect(cx: Scope) -> Element {
                 "Verify"
             }
             div {
-                class: "tab_choice",
+                class: "tab_choice active_tab",
                 "About"
             }
         }
