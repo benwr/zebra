@@ -136,7 +136,7 @@ fn MyKeys(cx: Scope) -> Element {
                 tr {
                     td {
                         class: "fingerprint",
-                        "fp:jf^:GW)T=&^}}dg-$6VVm"
+                        "jf^:GW)T=&^}}dg-$6VVm"
                     }
                     td {
                         class: "name",
