@@ -28,6 +28,11 @@ nav.tab_select div.tab_choice {
   height: 27px;
 }
 
+nav.tab_select div.tab_choice:hover {
+  cursor: pointer;
+  color: #000;
+}
+
 nav.tab_select div.active_tab {
   background-color: #eef;
   color: #000;
@@ -39,11 +44,6 @@ nav.tab_select div.inactive_tab {
   border-top: 1px solid #ccc;
   border-left: 1px solid #ccc;
   border-right: 1px solid #ccc;
-}
-
-nav.tab_select div.tab_choice:hover {
-  cursor: pointer;
-  color: #000;
 }
 
 div.contents {
