@@ -173,7 +173,7 @@ fn MyKeys(cx: Scope) -> Element {
 fn OtherKeys(cx: Scope) -> Element {
     cx.render(rsx! {
         table {
-            class: "mykeys",
+            class: "otherkeys",
             thead {
                 tr {
                     th {
@@ -186,6 +186,9 @@ fn OtherKeys(cx: Scope) -> Element {
                         "Email"
                     }
                     th {
+                        "Verified"
+                    }
+                    th {
                         "Actions"
                     }
                 }
@@ -194,23 +197,25 @@ fn OtherKeys(cx: Scope) -> Element {
                 tr {
                     td {
                         class: "fingerprint",
-                        "jf^:GW)T=&^}}dg-$6VVm"
+                        "48GRzYT9kxSN8cfM39^#"
                     }
                     td {
                         class: "name",
-                        "Ben Weinstein-Raun"
+                        "Kurt Brown"
                     }
                     td {
                         class: "email",
-                        "b@w-r.me"
+                        "kurt.brown126@gmail.com"
+                    }
+                    td {
+                        input {
+                            type: checkbox,
+                        }
                     }
                     td {
                         class: "actions",
                         button {
                             "Copy Public Key",
-                        }
-                        button {
-                            "Send To New Device"
                         }
                         button {
                             "Delete",
