@@ -53,6 +53,7 @@ nav.tab_select div.tab_choice {
 }
 
 nav.tab_select div.inactive_tab {
+  margin-top: -1px;
   border-bottom: 1px solid #aaa;
 }
 
