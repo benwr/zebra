@@ -89,3 +89,7 @@ td.email {
 td.actions {
   text-align: right;
 }
+
+p.logo_caption {
+  font-size: 10px;
+}
