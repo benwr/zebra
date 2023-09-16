@@ -44,7 +44,7 @@ fn TabSelect(cx: Scope) -> Element {
             onmousedown: move |_| { desktop.drag(); },
             class: "tab_select",
             div {
-                onclick: move |_| {},
+                onclick: move |_| {*use_shared_state::<ActiveTab>(cx).unwrap().write() = ActiveTab::MyKeys},
                 class: {
                     if let ActiveTab::MyKeys = active_tab {
                         "tab_choice active_tab"
@@ -66,7 +66,7 @@ fn TabSelect(cx: Scope) -> Element {
                 "Other Keys"
             }
             div {
-                onclick: move |_| {},
+                onclick: move |_| {*use_shared_state::<ActiveTab>(cx).unwrap().write() = ActiveTab::Sign},
                 class: {
                     if let ActiveTab::Sign = active_tab {
                         "tab_choice active_tab"
@@ -78,7 +78,7 @@ fn TabSelect(cx: Scope) -> Element {
                 "Sign"
             }
             div {
-                onclick: move |_| {},
+                onclick: move |_| {*use_shared_state::<ActiveTab>(cx).unwrap().write() = ActiveTab::Verify},
                 class: {
                     if let ActiveTab::Verify = active_tab {
                         "tab_choice active_tab"
