@@ -13,7 +13,7 @@ pub fn About(cx: Scope) -> Element {
                 width: "256px",
             }
             p {
-                class: "logo_caption",
+                class: "copyright_info",
                 "App Logo adapted from "
                 a { 
                     href: "https://www.flickr.com/photos/carolemage/8270400666",
