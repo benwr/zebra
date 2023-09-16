@@ -24,7 +24,7 @@ fn TabSelect(cx: Scope) -> Element {
     let desktop = dioxus_desktop::use_window(cx);
     cx.render(rsx! {
         nav {
-            onmousedown: move |_| { desktop.drag_window(); },
+            onmousedown: move |_| { desktop.drag(); },
             class: "tab_select",
             div {
                 class: "tab_choice inactive_tab",
