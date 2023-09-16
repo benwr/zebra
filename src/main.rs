@@ -164,20 +164,199 @@ fn MyKeys(cx: Scope) -> Element {
         button {
             "Create New Keypair"
         }
+        button {
+            "Receive Keypair From Other Device"
+        }
     })
 }
 
 fn OtherKeys(cx: Scope) -> Element {
     cx.render(rsx! {
-        div {
+        table {
+            class: "otherkeys",
+            thead {
+                tr {
+                    th {
+                        "Fingerprint"
+                    }
+                    th {
+                        "Name"
+                    }
+                    th {
+                        "Email"
+                    }
+                    th {
+                        "Verified"
+                    }
+                    th {
+                        "Actions"
+                    }
+                }
+            }
+            tbody {
+                tr {
+                    td {
+                        class: "fingerprint",
+                        "48GRzYT9kxSN8cfM39^#"
+                    }
+                    td {
+                        class: "name",
+                        "Kurt Brown"
+                    }
+                    td {
+                        class: "email",
+                        "kurt.brown126@gmail.com"
+                    }
+                    td {
+                        class: "verified",
+                        input {
+                            "type": "checkbox",
+                            checked: "true",
+                        }
+                    }
+                    td {
+                        class: "actions",
+                        button {
+                            "Copy Public Key",
+                        }
+                        button {
+                            "Delete",
+                        }
+                        button {
+                            "Verify By Email"
+                        }
+                    }
+                }
+                tr {
+                    td {
+                        class: "fingerprint",
+                        "Du&hpGhD@Ld6AVATQNSp"
+                    }
+                    td {
+                        class: "name",
+                        "Sam Bankman-Fried"
+                    }
+                    td {
+                        class: "email",
+                        "sbf@ftx.us"
+                    }
+                    td {
+                        class: "verified",
+                        input {
+                            "type": "checkbox",
+                        }
+                    }
+                    td {
+                        class: "actions",
+                        button {
+                            "Copy Public Key",
+                        }
+                        button {
+                            "Delete",
+                        }
+                        button {
+                            "Verify By Email"
+                        }
+                    }
+                }
+            }
+        }
+        button {
+            "Import Public Key"
         }
     })
 }
 
 fn Sign(cx: Scope) -> Element {
     cx.render(rsx! {
-        div {
+        "Text To Sign: "
+        textarea {}
+        br {}
+        "My Key: "
+        select {
+            option {
+                "Ben Weinstein-Raun <b@w-r.me> (\"jf^:GW)T=&^}}dg-$6VVm\")"
+            }
         }
+        br {}
+        "Other Keys: "
+        table {
+            class: "otherkeys",
+            thead {
+                tr {
+                    th {
+                        "Include"
+                    }
+                    th {
+                        "Fingerprint"
+                    }
+                    th {
+                        "Name"
+                    }
+                    th {
+                        "Email"
+                    }
+                    th {
+                        "Verified"
+                    }
+                }
+            }
+            tbody {
+                tr {
+                    td {
+                        input {
+                            "type": "checkbox",
+                        }
+                    }
+                    td {
+                        class: "fingerprint",
+                        "48GRzYT9kxSN8cfM39^#"
+                    }
+                    td {
+                        class: "name",
+                        "Kurt Brown"
+                    }
+                    td {
+                        class: "email",
+                        "kurt.brown126@gmail.com"
+                    }
+                    td {
+                        class: "verified",
+                        input {
+                            "type": "checkbox",
+                            checked: "true",
+                        }
+                    }
+                }
+                tr {
+                    td {
+                        input {
+                            "type": "checkbox",
+                        }
+                    }
+                    td {
+                        class: "fingerprint",
+                        "Du&hpGhD@Ld6AVATQNSp"
+                    }
+                    td {
+                        class: "name",
+                        "Sam Bankman-Fried"
+                    }
+                    td {
+                        class: "email",
+                        "sbf@ftx.us"
+                    }
+                    td {
+                        class: "verified",
+                        input {
+                            "type": "checkbox",
+                        }
+                    }
+                }
+            }
+        }
+        br {}
+        button { "Copy Signature" }
     })
 }
 
