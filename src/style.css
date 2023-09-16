@@ -12,14 +12,10 @@ HTML, body, div, nav {
 }
 
 nav {
-  margin: 0;
-  box-sizing: border-box;
-  padding: 0;
   padding-top: 15px;
   padding-left: 15px;
   width: 100%;
   background: #ccd7f6;
-  overflow: show;
   height: 47px;
   border-bottom: 1px solid #aaa;
   box-shadow: inset 0 8px 10px -10px #555;
