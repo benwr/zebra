@@ -18,6 +18,11 @@ pub fn About(cx: Scope) -> Element {
                     href: "https://www.flickr.com/photos/carolemage/8270400666",
                     "Spartacus, marble sculpture of Denis Foyatier (1830), Louvre Museum"
                 }
+                " by Carole Raddato. Image is licensed under a "
+                a {
+                    href: "https://creativecommons.org/licenses/by-sa/2.0/",
+                    "Creative Commons Attribution-ShareAlike 2.0 Generic License"
+                }
                 ")"
             }
             p {"A tool for creating and verifying ring signatures."}
