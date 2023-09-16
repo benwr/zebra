@@ -22,6 +22,7 @@ fn App(cx: Scope) -> Element {
 
 fn TabSelect(cx: Scope) -> Element {
     let desktop = dioxus_desktop::use_window(cx);
+    desktop.set_title("Spartacus");
     cx.render(rsx! {
         nav {
             onmousedown: move |_| { desktop.drag(); },
