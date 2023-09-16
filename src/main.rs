@@ -119,7 +119,10 @@ fn MyKeys(cx: Scope) -> Element {
             thead {
                 tr {
                     th {
-                        "Identity"
+                        "Name"
+                    }
+                    th {
+                        "Email"
                     }
                     th {
                         "Fingerprint"
@@ -132,7 +135,10 @@ fn MyKeys(cx: Scope) -> Element {
             tbody {
                 tr {
                     td {
-                        "Ben Weinstein-Raun <b@w-r.me>"
+                        "Ben Weinstein-Raun"
+                    }
+                    td {
+                        "b@w-r.me"
                     }
                     td {
                         "013440fc2058a031b"
