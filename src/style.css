@@ -3,6 +3,7 @@ HTML, body, div {
   margin: 0px;
   padding: 0px;
   border: 0px;
+  background: #eef;
 }
 
 nav {
@@ -40,5 +41,4 @@ div.contents {
   margin-top: 0;
   padding: 15px;
   border: 1px solid #000;
-  background: #eef;
 }
