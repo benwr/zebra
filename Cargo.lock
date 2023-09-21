@@ -2742,6 +2742,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "925383efa346730478fb4838dbe9137d2a47675ad789c546d150a6e1dd4ab31c"
 
 [[package]]
+name = "printable_ascii"
+version = "0.0.0"
+dependencies = [
+ "borsh",
+ "zeroize",
+]
+
+[[package]]
 name = "proc-macro-crate"
 version = "1.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3371,10 +3379,11 @@ dependencies = [
 
 [[package]]
 name = "spartacus_crypto"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "borsh",
  "curve25519-dalek 4.1.0",
+ "printable_ascii",
  "rand 0.8.5",
  "sha3",
  "zeroize",
@@ -3382,7 +3391,7 @@ dependencies = [
 
 [[package]]
 name = "spartacus_storage"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "age",
  "ascii",

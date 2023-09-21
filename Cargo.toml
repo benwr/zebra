@@ -5,4 +5,5 @@ members = [
   "spartacus_crypto",
   "spartacus_desktop",
   "spartacus_storage",
+  "printable_ascii",
 ]

@@ -3,62 +3,20 @@ use rand::rngs::OsRng;
 use sha3::{Digest, Sha3_512};
 use zeroize::Zeroize;
 
+use printable_ascii::PrintableAsciiString;
+
 // TODO To what extent should we try to mark values as secret, e.g. with mlock? Does the dalek
 // library do any of that for us? Should we delegate that to users of this library? I think we
-// probably should.
+// probably should. For now we use the Zeroize crate to at least ensure that secrets are *usually*
+// zeroed.
 
-/// A string of bytes that is impossible to construct with any non-ASCII or non-printable
-/// characters.
-#[derive(Clone, Zeroize)]
-pub struct PrintableAsciiString(Vec<u8>);
-
-impl PrintableAsciiString {
-    fn as_bytes(&self) -> &[u8] {
-        &self.0
-    }
-
-    fn from_bytes(bytes: Vec<u8>) -> Option<Self> {
-        for b in bytes.iter() {
-            // Characters 31 and below are nonprintable
-            // Character 127 is DEL
-            // Characters 128 and above are control characters
-            if *b < 32 || *b > 126 {
-                return None;
-            }
-        }
-        Some(PrintableAsciiString(bytes))
-    }
-}
-
-impl From<PrintableAsciiString> for String {
-    fn from(s: PrintableAsciiString) -> String {
-        String::from_utf8(s.0)
-            .expect("ASCII should always be valid UTF-8, but this failed to convert")
-    }
-}
-
-impl BorshSerialize for PrintableAsciiString {
-    fn serialize<W: std::io::Write>(&self, w: &mut W) -> Result<(), std::io::Error> {
-        self.0.serialize(w)
-    }
-}
-
-impl BorshDeserialize for PrintableAsciiString {
-    fn deserialize_reader<R: std::io::Read>(
-        r: &mut R,
-    ) -> Result<PrintableAsciiString, std::io::Error> {
-        let bytes = <Vec<u8>>::deserialize_reader(r)?;
-        Ok(
-            PrintableAsciiString::from_bytes(bytes).ok_or(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("Unprintable characters when deserializing printable ascii string"),
-            ))?,
-        )
-    }
-}
+// TODO right now, throughout here we use the OsRng willy-nilly, rather than aiming to be generic
+// over PRNGs. If we want to add property testing, or if someone else wants to use this library for
+// something else in the future, we should change this.
 
 // We use newtype wrappers for RistrettoPoint and Scalar because we need to (de)serialize them
-// using Borsh. Their APIs are entirely private, and we only duplicate as much as we use.
+// using Borsh. Their APIs stay private to this file, and we only duplicate as much as we use from
+// the dalek API.
 #[derive(Clone, Copy, PartialEq, Zeroize)]
 pub struct RistrettoPoint(curve25519_dalek::ristretto::RistrettoPoint);
 
@@ -169,6 +127,14 @@ impl BorshDeserialize for Scalar {
     }
 }
 
+/// We make a ring of public keys. First, we add the public key corresponding to the given private
+/// key to the list of possible signers. Then we sort the ring by the members' RistrettoPoints.
+/// That way, all properties of the ring are determined entirely by the choice of keys, and not at
+/// all by randomness.
+
+// TODO Is there a reason that the other ECC-based implementations I've found prefer to shuffle the
+// ring, rather than sorting it? I can't immediately think of a reason, and in RSA-based code I've
+// seen, the reverse is true.
 fn make_ring<T: Clone, F: Fn(T) -> RistrettoPoint>(
     my_key: T,
     other_keys: &[T],
@@ -182,6 +148,8 @@ fn make_ring<T: Clone, F: Fn(T) -> RistrettoPoint>(
     ring
 }
 
+/// Generate the hash of the message and public keys in the ring. This serves as the mathematical
+/// object that is actually "signed" in the ring signature.
 fn hash_message_and_ring<'a>(
     message: &[u8],
     keys: impl Iterator<Item = &'a RistrettoPoint>,
@@ -200,11 +168,15 @@ pub struct Signature {
 }
 
 impl Signature {
-    // Sources:
-    // https://web.archive.org/web/20230526135545/https://www.getmonero.org/library/Zero-to-Monero-2-0-0.pdf
-    // (https://www.getmonero.org/library/Zero-to-Monero-2-0-0.pdf)
-    // https://archive.ph/rtOuB (https://github.com/edwinhere/nazgul/blob/master/src/sag.rs)
-    // https://archive.ph/EsIX0 (https://github.com/zudo/ring-signature/blob/main/src/sag.rs)
+    /// Compute a ring signature of the given message, using the given private key, such that the
+    /// signature could have been produced by any of the holders of the given public keys (those
+    /// passed in directly, or the one that can be generated from the given private key).
+    ///
+    /// Sources:
+    /// https://web.archive.org/web/20230526135545/https://www.getmonero.org/library/Zero-to-Monero-2-0-0.pdf
+    /// (https://www.getmonero.org/library/Zero-to-Monero-2-0-0.pdf)
+    /// https://archive.ph/rtOuB (https://github.com/edwinhere/nazgul/blob/master/src/sag.rs)
+    /// https://archive.ph/EsIX0 (https://github.com/zudo/ring-signature/blob/main/src/sag.rs)
     fn sign(
         message: &[u8],
         my_private_value: Scalar,
@@ -243,6 +215,9 @@ impl Signature {
         }
     }
 
+    /// Verify that this is a valid signature of the given message. That is, one of the holders of
+    /// the private keys corresponding to the public keys in the ring, must have produced this
+    /// signature.
     fn verify(&self, message: &[u8]) -> bool {
         let initial_hash =
             hash_message_and_ring(&message, self.ring_responses.iter().map(|(k, _)| k));
@@ -267,36 +242,47 @@ pub struct Identity {
 }
 
 impl Identity {
+    /// The information that, when signed and verified, suffices to prove that the given public
+    /// keypoint belongs to someone who claims this identity.
     fn bytes_for_attestation(&self, keypoint: &RistrettoPoint) -> Vec<u8> {
         let mut result = vec![];
+        // This text could be anything or nothing in principle, but it's good to make it obvious
+        // when a malicious source might be leading a user to make a bogus attestation.
+        result.extend_from_slice("I AM SPARTACUS. I VERIFY THAT THE KEY BELOW BELONGS TO: ".as_bytes());
         result.extend_from_slice(self.name.as_bytes());
-        result.extend_from_slice(&[0xff]); // sentinel separating holder name and email
+        result.extend_from_slice(&[0xff]); // sentinel separating holder's name and email. Not a
+                                           // valid UTF-8 or ASCII byte.
         result.extend_from_slice(self.email.as_bytes());
         result.extend_from_slice(&keypoint.compress());
         result
     }
 }
 
+/// A complete public key, containing all the information required to share the key with others, to
+/// store it to disk, or to take part in a ring signature or verification.
 #[derive(Clone, Zeroize, BorshSerialize, BorshDeserialize)]
 pub struct PublicKey {
     pub holder: Identity,
     pub keypoint: RistrettoPoint,
-    // We want a public key to be a simple package that can be important without additional user
-    // input (e.g. associating the key with an identity). Thus the public key structure should
-    // include the identity as well as the key material. But in that case, we want to make it
-    // difficult for a mistaken or malicious party to cause a user to import key material with the
-    // wrong identity associated.
+    // We want a public key to be a simple package that can be imported into an app without
+    // additional user input (e.g. associating the key with an identity). Thus the public key
+    // structure should include the identity as well as the key material. But in that case, we want
+    // to make it difficult for a mistaken or malicious party to cause a user to import key
+    // material with the wrong identity associated.
 
     // This is a single-entry ring signature of the identity and the public keypoint, made by the
-    // corresponding secret key. This ensures that the person with this keypair (at least) claims to have the
-    // given identity. Thus a client app can refuse to import a pair that mismatches the identity
-    // to the key material. And because a message signature only ensures the integrity of the
-    // ring keypoints and not the associated identities, this attestation also enables enforcing that the
-    // identities associated with a signed message haven't been tampered with, e.g. by an intermediary.
+    // corresponding secret key. This ensures that the person with this keypair (at least) claims
+    // to have the given identity. Thus a client app can refuse to import a pair that mismatches
+    // the identity to the key material. And because a message signature only ensures the integrity
+    // of the ring keypoints and not the associated identities, this attestation also enables
+    // enforcing that the identities associated with a signed message haven't been tampered with,
+    // e.g. by an intermediary.
     pub holder_attestation: Signature,
 }
 
 impl PublicKey {
+    /// Verify that the holder of this public key's corresponding private key has claimed that the
+    /// key belongs to the identity that this key appears with.
     fn validate_attestation(&self) -> bool {
         if self.holder_attestation.ring_responses.len() != 1 {
             return false;
@@ -309,11 +295,19 @@ impl PublicKey {
     }
 }
 
+
+/// A complete private key, containing all the information required to store it to disk, or to
+/// produce new ring signatures.
 #[derive(Zeroize, BorshSerialize, BorshDeserialize)]
 pub struct PrivateKey {
     pub holder: Identity,
     key: Scalar,
-    holder_attestation: Signature, // Here b/c we don't want distinct attestations for the same keypair.
+    // We store the holder attestation in the private key as well as the public key, because we
+    // don't want to generate distinct attestations for the same keypair: Because each attestation
+    // includes a randomly-generated challenge, each independently-generated attestation will be
+    // different. Cryptographicall this shouldn't matter, but it's nice to have only one canonical
+    // public key rather than an endless stream of them.
+    holder_attestation: Signature,
 }
 
 impl PrivateKey {
@@ -339,6 +333,8 @@ impl PrivateKey {
     }
 }
 
+/// A signed message. Contains enough information to verify that one of a given set of public keys
+/// signed the included message (and that those keys claim to correspond to the given identities).
 #[derive(Zeroize, BorshSerialize, BorshDeserialize)]
 pub struct SignedMessage {
     message: Vec<u8>,
