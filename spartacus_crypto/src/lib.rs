@@ -425,9 +425,22 @@ mod tests {
     #[test]
     fn full_signatures_work() {
         let message = b"SPARTACVSSVM";
-        let my_email = PrintableAsciiString::from_bytes(b"example@w-r.me").unwrap();
+        let my_email = PrintableAsciiString::from_bytes(b"spartacus@example.com").unwrap();
         let my_name = "Spartacus";
         let my_id = Identity::new(my_name, &my_email);
-        let my_key = PrivateKey::new();
+        let my_key = PrivateKey::new(my_id.clone());
+
+        let other_email = PrintableAsciiString::from_bytes(b"spartacus@example.com").unwrap();
+        let other_name = "Spartacus";
+        let other_id = Identity::new(other_name, &other_email);
+        let other_key = PrivateKey::new(other_id.clone());
+        let other_public = other_key.public();
+
+        let mut signed = SignedMessage::sign(message, &my_key, &[other_public]);
+        assert!(signed.verify());
+
+        signed.message = Vec::new();
+        signed.message.extend_from_slice(b"SPARTACUSEST");
+        assert!(!signed.verify());
     }
 }
