@@ -54,7 +54,7 @@ impl BorshDeserialize for RistrettoPoint {
             })?;
         let point = compressed_point.decompress().ok_or(std::io::Error::new(
             std::io::ErrorKind::Other,
-            format!("Could not decompress ristretto point"),
+            "Could not decompress ristretto point".to_string(),
         ))?;
         Ok(RistrettoPoint(point))
     }
@@ -111,7 +111,7 @@ impl BorshDeserialize for Scalar {
         let s = Option::from(curve25519_dalek::Scalar::from_canonical_bytes(bytes)).ok_or(
             std::io::Error::new(
                 std::io::ErrorKind::Other,
-                format!("Could not deserialize ristretto scalar"),
+                "Could not deserialize ristretto scalar".to_string(),
             ),
         )?;
         Ok(Scalar(s))
@@ -198,7 +198,7 @@ impl Signature {
 
         Self {
             challenge: cs[0].clone(),
-            ring_responses: ring.into_iter().zip(responses.into_iter()).collect(),
+            ring_responses: ring.into_iter().zip(responses).collect(),
         }
     }
 
@@ -207,14 +207,14 @@ impl Signature {
     /// signature.
     fn verify(&self, message: &[u8]) -> bool {
         let initial_hash =
-            hash_message_and_ring(&message, self.ring_responses.iter().map(|(k, _)| k));
+            hash_message_and_ring(message, self.ring_responses.iter().map(|(k, _)| k));
 
         let mut reconstructed_challenge = self.challenge.clone();
 
         for (keypoint, response) in &self.ring_responses {
             let mut h = initial_hash.clone();
             let hash_update =
-                RistrettoPoint::mul_base(&response) + reconstructed_challenge * keypoint;
+                RistrettoPoint::mul_base(response) + reconstructed_challenge * keypoint;
             h.update(hash_update.compress());
             reconstructed_challenge = Scalar::from_hash(h);
         }
@@ -229,6 +229,13 @@ pub struct Identity {
 }
 
 impl Identity {
+    pub fn new(name: &str, email: &PrintableAsciiString) -> Self {
+        Self {
+            name: name.to_string(),
+            email: email.clone(),
+        }
+    }
+
     /// The information that, when signed and verified, suffices to prove that the given public
     /// keypoint belongs to someone who claims this identity.
     fn bytes_for_attestation(&self, keypoint: &RistrettoPoint) -> Vec<u8> {
@@ -346,7 +353,7 @@ impl SignedMessage {
             challenge: sig.challenge.clone(),
             ring: sig.ring_responses.clone()
                 .into_iter()
-                .zip(ring.into_iter())
+                .zip(ring)
                 .map(|((_, s), p)| (p, s))
                 .collect(),
         }
@@ -413,5 +420,14 @@ mod tests {
             ring_responses: signature_b.ring_responses.clone(),
         }
         .verify(message_b));
+    }
+
+    #[test]
+    fn full_signatures_work() {
+        let message = b"SPARTACVSSVM";
+        let my_email = PrintableAsciiString::from_bytes(b"example@w-r.me").unwrap();
+        let my_name = "Spartacus";
+        let my_id = Identity::new(my_name, &my_email);
+        let my_key = PrivateKey::new();
     }
 }
