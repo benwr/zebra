@@ -1,9 +1,9 @@
 use borsh::{BorshDeserialize, BorshSerialize};
-use zeroize::Zeroize;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// A string of bytes that is impossible to construct with any non-ASCII or non-printable
 /// characters.
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Zeroize)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Zeroize, ZeroizeOnDrop)]
 pub struct PrintableAsciiString(Vec<u8>);
 
 impl PrintableAsciiString {
@@ -26,7 +26,7 @@ impl PrintableAsciiString {
 
 impl From<PrintableAsciiString> for String {
     fn from(s: PrintableAsciiString) -> String {
-        String::from_utf8(s.0)
+        String::from_utf8(s.0.clone())
             .expect("ASCII should always be valid UTF-8, but this failed to convert")
     }
 }

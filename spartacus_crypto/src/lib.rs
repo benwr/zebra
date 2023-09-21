@@ -1,7 +1,7 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 use rand::rngs::OsRng;
 use sha3::{Digest, Sha3_512};
-use zeroize::Zeroize;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use printable_ascii::PrintableAsciiString;
 
@@ -17,7 +17,7 @@ use printable_ascii::PrintableAsciiString;
 // We use newtype wrappers for RistrettoPoint and Scalar because we need to (de)serialize them
 // using Borsh. Their APIs stay private to this file, and we only duplicate as much as we use from
 // the dalek API.
-#[derive(Clone, Copy, PartialEq, Zeroize)]
+#[derive(Clone, PartialEq, Zeroize, ZeroizeOnDrop)]
 pub struct RistrettoPoint(curve25519_dalek::ristretto::RistrettoPoint);
 
 impl RistrettoPoint {
@@ -69,7 +69,7 @@ impl BorshDeserialize for RistrettoPoint {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Zeroize)]
+#[derive(Clone, PartialEq, Zeroize, ZeroizeOnDrop)]
 pub struct Scalar(curve25519_dalek::Scalar);
 
 impl Scalar {
@@ -161,7 +161,7 @@ fn hash_message_and_ring<'a>(
     message_and_ring_hash
 }
 
-#[derive(Clone, Zeroize, BorshSerialize, BorshDeserialize)]
+#[derive(Clone, Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize)]
 pub struct Signature {
     challenge: Scalar,
     ring_responses: Vec<(RistrettoPoint, Scalar)>,
@@ -186,7 +186,7 @@ impl Signature {
 
         let ring_size = other_public_keypoints.len() + 1;
 
-        let ring = make_ring(my_public_keypoint, other_public_keypoints, |k| k);
+        let ring = make_ring(my_public_keypoint.clone(), other_public_keypoints, |k| k);
         let my_key_index = ring
             .binary_search_by_key(&my_public_keypoint.compress(), |k| k.compress())
             .expect("Key just inserted into vec, but missing after sorting.");
@@ -204,13 +204,13 @@ impl Signature {
             hash.update(next_hash_update.compress());
             cs[index] = Scalar::from_hash(hash);
             next_hash_update =
-                RistrettoPoint::mul_base(&responses[index]) + cs[index] * &ring[index];
+                RistrettoPoint::mul_base(&responses[index]) + cs[index].clone() * &ring[index];
         }
 
-        responses[my_key_index] = a - (cs[my_key_index] * my_private_value);
+        responses[my_key_index] = a - (cs[my_key_index].clone() * my_private_value);
 
         Self {
-            challenge: cs[0],
+            challenge: cs[0].clone(),
             ring_responses: ring.into_iter().zip(responses.into_iter()).collect(),
         }
     }
@@ -235,7 +235,7 @@ impl Signature {
     }
 }
 
-#[derive(Clone, Zeroize, BorshSerialize, BorshDeserialize)]
+#[derive(Clone, Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize)]
 pub struct Identity {
     pub name: String,
     pub email: PrintableAsciiString, // Try to prevent homoglyph attacks in the address
@@ -260,7 +260,7 @@ impl Identity {
 
 /// A complete public key, containing all the information required to share the key with others, to
 /// store it to disk, or to take part in a ring signature or verification.
-#[derive(Clone, Zeroize, BorshSerialize, BorshDeserialize)]
+#[derive(Clone, Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize)]
 pub struct PublicKey {
     pub holder: Identity,
     pub keypoint: RistrettoPoint,
@@ -298,7 +298,7 @@ impl PublicKey {
 
 /// A complete private key, containing all the information required to store it to disk, or to
 /// produce new ring signatures.
-#[derive(Zeroize, BorshSerialize, BorshDeserialize)]
+#[derive(Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize)]
 pub struct PrivateKey {
     pub holder: Identity,
     key: Scalar,
@@ -316,11 +316,11 @@ impl PrivateKey {
         PrivateKey {
             holder_attestation: Signature::sign(
                 &holder.bytes_for_attestation(&RistrettoPoint::mul_base(&key)),
-                key,
+                key.clone(),
                 &[],
             ),
             holder,
-            key,
+            key: key.clone(),
         }
     }
 
@@ -335,7 +335,7 @@ impl PrivateKey {
 
 /// A signed message. Contains enough information to verify that one of a given set of public keys
 /// signed the included message (and that those keys claim to correspond to the given identities).
-#[derive(Zeroize, BorshSerialize, BorshDeserialize)]
+#[derive(Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize)]
 pub struct SignedMessage {
     message: Vec<u8>,
     challenge: Scalar,
@@ -344,21 +344,18 @@ pub struct SignedMessage {
 
 impl SignedMessage {
     pub fn sign(message: &[u8], my_key: &PrivateKey, other_keys: &[PublicKey]) -> Self {
-        let Signature {
-            challenge,
-            ring_responses,
-        } = Signature::sign(
+        let sig = Signature::sign(
             message,
-            my_key.key,
-            &other_keys.iter().map(|k| k.keypoint).collect::<Vec<_>>(),
+            my_key.key.clone(),
+            &other_keys.iter().map(|k| k.keypoint.clone()).collect::<Vec<_>>(),
         );
 
-        let ring = make_ring(my_key.public(), other_keys, |k| k.keypoint);
+        let ring = make_ring(my_key.public(), other_keys, |k| k.keypoint.clone());
 
         SignedMessage {
             message: message.to_vec(),
-            challenge,
-            ring: ring_responses
+            challenge: sig.challenge.clone(),
+            ring: sig.ring_responses.clone()
                 .into_iter()
                 .zip(ring.into_iter())
                 .map(|((_, s), p)| (p, s))
@@ -380,8 +377,8 @@ impl SignedMessage {
 
     fn signature(&self) -> Signature {
         Signature {
-            challenge: self.challenge,
-            ring_responses: self.ring.iter().map(|(k, s)| (k.keypoint, *s)).collect(),
+            challenge: self.challenge.clone(),
+            ring_responses: self.ring.iter().map(|(k, s)| (k.keypoint.clone(), s.clone())).collect(),
         }
     }
 }
@@ -394,7 +391,7 @@ mod tests {
     fn basic_signatures_work() {
         let message = b"Message";
         let my_key = Scalar::random();
-        let signature = Signature::sign(message, my_key, &[]);
+        let signature = Signature::sign(message, my_key.clone(), &[]);
         assert!(
             signature.verify(message),
             "Failed to verify one-key signature"
@@ -402,7 +399,7 @@ mod tests {
 
         let message_a = b"Message A";
         let otherkey_a = RistrettoPoint::random();
-        let signature_a = Signature::sign(message_a, my_key, &[otherkey_a]);
+        let signature_a = Signature::sign(message_a, my_key.clone(), &[otherkey_a.clone()]);
         assert!(
             signature_a.verify(message_a),
             "Failed to verify two-key signature"
@@ -410,7 +407,7 @@ mod tests {
 
         let message_b = b"Message B";
         let otherkey_b = RistrettoPoint::random();
-        let signature_b = Signature::sign(message_b, my_key, &[otherkey_a, otherkey_b]);
+        let signature_b = Signature::sign(message_b, my_key, &[otherkey_a.clone(), otherkey_b]);
         assert!(
             signature_b.verify(message_b),
             "Failed to verify three-key signature"
@@ -418,13 +415,13 @@ mod tests {
 
         assert!(!Signature {
             ring_responses: signature_a.ring_responses.clone(),
-            ..signature_b.clone()
+            challenge: signature_b.challenge.clone(),
         }
         .verify(message_b));
         assert!(!signature_b.verify(message_a));
         assert!(!Signature {
-            challenge: signature_a.challenge,
-            ..signature_b.clone()
+            challenge: signature_a.challenge.clone(),
+            ring_responses: signature_b.ring_responses.clone(),
         }
         .verify(message_b));
     }
