@@ -1,0 +1,13 @@
+[package]
+name = "spartacus_crypto"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+borsh = { version = "1.0.0-alpha.4", features = ["derive"] }
+curve25519-dalek = { version = "4", features = ["alloc", "digest", "rand_core"] }
+rand = { version = "0.8", features = ["getrandom"] }
+sha3 = "0.10"
+zeroize = { version = "1", features = ["zeroize_derive"] }

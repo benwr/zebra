@@ -2,5 +2,7 @@
 
 resolver = "2"
 members = [
-  "spartacus_desktop"
+  "spartacus_crypto",
+  "spartacus_desktop",
+  "spartacus_storage",
 ]
