@@ -242,7 +242,9 @@ impl Identity {
         let mut result = vec![];
         // This text could be anything or nothing in principle, but it's good to make it obvious
         // when a malicious source might be leading a user to make a bogus attestation.
-        result.extend_from_slice("I AM SPARTACUS. I VERIFY THAT THE KEY BELOW BELONGS TO: ".as_bytes());
+        result.extend_from_slice(
+            "I AM SPARTACUS. I VERIFY THAT THE KEY BELOW BELONGS TO: ".as_bytes(),
+        );
         result.extend_from_slice(self.name.as_bytes());
         result.extend_from_slice(&[0xff]); // sentinel separating holder's name and email. Not a
                                            // valid UTF-8 or ASCII byte.
@@ -290,7 +292,6 @@ impl PublicKey {
             .verify(&self.holder.bytes_for_attestation(&self.keypoint))
     }
 }
-
 
 /// A complete private key, containing all the information required to store it to disk, or to
 /// produce new ring signatures.
@@ -343,7 +344,10 @@ impl SignedMessage {
         let sig = Signature::sign(
             message,
             my_key.key.clone(),
-            &other_keys.iter().map(|k| k.keypoint.clone()).collect::<Vec<_>>(),
+            &other_keys
+                .iter()
+                .map(|k| k.keypoint.clone())
+                .collect::<Vec<_>>(),
         );
 
         let ring = make_ring(my_key.public(), other_keys, |k| k.keypoint.clone());
@@ -351,7 +355,9 @@ impl SignedMessage {
         SignedMessage {
             message: message.to_vec(),
             challenge: sig.challenge.clone(),
-            ring: sig.ring_responses.clone()
+            ring: sig
+                .ring_responses
+                .clone()
                 .into_iter()
                 .zip(ring)
                 .map(|((_, s), p)| (p, s))
@@ -374,7 +380,11 @@ impl SignedMessage {
     fn signature(&self) -> Signature {
         Signature {
             challenge: self.challenge.clone(),
-            ring_responses: self.ring.iter().map(|(k, s)| (k.keypoint.clone(), s.clone())).collect(),
+            ring_responses: self
+                .ring
+                .iter()
+                .map(|(k, s)| (k.keypoint.clone(), s.clone()))
+                .collect(),
         }
     }
 }
@@ -430,8 +440,8 @@ mod tests {
         let my_id = Identity::new(my_name, &my_email);
         let my_key = PrivateKey::new(my_id.clone());
 
-        let other_email = PrintableAsciiString::from_bytes(b"spartacus@example.com").unwrap();
-        let other_name = "Spartacus";
+        let other_email = PrintableAsciiString::from_bytes(b"notspartacus@example.com").unwrap();
+        let other_name = "Gaius";
         let other_id = Identity::new(other_name, &other_email);
         let other_key = PrivateKey::new(other_id.clone());
         let other_public = other_key.public();
@@ -440,7 +450,7 @@ mod tests {
         assert!(signed.verify());
 
         signed.message = Vec::new();
-        signed.message.extend_from_slice(b"SPARTACUSEST");
+        signed.message.extend_from_slice(b"SPARTACVSEST");
         assert!(!signed.verify());
     }
 }
