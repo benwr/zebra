@@ -1,6 +1,11 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
+// NOTE if I were going to publish this as a proper crate, I'd want to add a PrintableAsciiChar
+// type, which would let us more easily mutate the PrintableAsciiStrings (since you could pull some
+// shenanigans to treat the PrintableAsciiString as a Vec<u8> *or* a Vec<PrintableAsciiChar>,
+// allowing users to mutate the latter at will.
+
 /// A string of bytes that is impossible to construct with any non-ASCII or non-printable
 /// characters.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default, Zeroize, ZeroizeOnDrop)]
