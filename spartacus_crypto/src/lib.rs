@@ -5,15 +5,6 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use printable_ascii::PrintableAsciiString;
 
-// TODO To what extent should we try to mark values as secret, e.g. with mlock? Does the dalek
-// library do any of that for us? Should we delegate that to users of this library? I think we
-// probably should. For now we use the Zeroize crate to at least ensure that secrets are *usually*
-// zeroed.
-
-// TODO right now, throughout here we use the OsRng willy-nilly, rather than aiming to be generic
-// over PRNGs. If we want to add property testing, or if someone else wants to use this library for
-// something else in the future, we should change this.
-
 // We use newtype wrappers for RistrettoPoint and Scalar because we need to (de)serialize them
 // using Borsh. Their APIs stay private to this file, and we only duplicate as much as we use from
 // the dalek API.
@@ -131,10 +122,6 @@ impl BorshDeserialize for Scalar {
 /// key to the list of possible signers. Then we sort the ring by the members' RistrettoPoints.
 /// That way, all properties of the ring are determined entirely by the choice of keys, and not at
 /// all by randomness.
-
-// TODO Is there a reason that the other ECC-based implementations I've found prefer to shuffle the
-// ring, rather than sorting it? I can't immediately think of a reason, and in RSA-based code I've
-// seen, the reverse is true.
 fn make_ring<T: Clone, F: Fn(T) -> RistrettoPoint>(
     my_key: T,
     other_keys: &[T],
@@ -276,7 +263,9 @@ pub struct PublicKey {
     // the identity to the key material. And because a message signature only ensures the integrity
     // of the ring keypoints and not the associated identities, this attestation also enables
     // enforcing that the identities associated with a signed message haven't been tampered with,
-    // e.g. by an intermediary.
+    // e.g. by an intermediary. In some sense it would be simpler to use a DSA signature instead
+    // of a ring signature, but in practice that would be unnecessary extra code or an extra
+    // dependency.
     pub holder_attestation: Signature,
 }
 
