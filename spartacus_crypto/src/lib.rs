@@ -161,9 +161,26 @@ impl Signature {
     ///
     /// Sources:
     /// https://web.archive.org/web/20230526135545/https://www.getmonero.org/library/Zero-to-Monero-2-0-0.pdf
-    /// (https://www.getmonero.org/library/Zero-to-Monero-2-0-0.pdf)
-    /// https://archive.ph/rtOuB (https://github.com/edwinhere/nazgul/blob/master/src/sag.rs)
-    /// https://archive.ph/EsIX0 (https://github.com/zudo/ring-signature/blob/main/src/sag.rs)
+    /// (https://www.getmonero.org/library/Zero-to-Monero-2-0-0.pdf; public domain)
+    /// https://archive.ph/rtOuB (https://github.com/edwinhere/nazgul/blob/master/src/sag.rs;
+    /// MIT-licensed)
+    /// https://archive.ph/EsIX0 (https://github.com/zudo/ring-signature/blob/main/src/sag.rs;
+    /// unlicensed as far as I can tell)
+    ///
+    /// In writing this code, I primarily relied on Zero to Monero: Second Edition, with moderate
+    /// double-checking against the first file linked above (edwinhere's SAG implementation). I
+    /// glanced at the third resource linked above (zudo's impelementation) once or twice; it seems
+    /// to have been written 3 months ago (as of September 2023), whereas edwinhere's version was
+    /// written 3 years ago. Based on the strong similarity between the two implementations, I'd
+    /// have to guess that zudo's implementation was at least inspired by edwinhere's. IMO this
+    /// version is cleaner and easier-to-audit than either of theirs, due to carefully simplifying
+    /// the iteration over the ring members.
+    ///
+    /// Copyright-wise, I'm confident that this implementation is *not* a derivative work of zudo's
+    /// implementation, as I barely glanced at it to double-check my understanding of edwinhere's
+    /// implementation. It's possible that this *could* be a derivative of edwinhere's
+    /// implementation, though I did mainly write it from scratch. However, this may constrain me
+    /// to publish this section of code under an MIT license
     fn sign(
         message: &[u8],
         my_private_value: Scalar,
@@ -185,8 +202,8 @@ impl Signature {
         let initial_hash = hash_message_and_ring(message, ring.iter());
         let mut next_hash_update = RistrettoPoint::mul_base(&a);
 
-        for offset_from_my_key in 0..ring_size {
-            let index = (my_key_index + offset_from_my_key + 1) % ring_size;
+        for offset_from_my_key in 1..ring_size + 1 {
+            let index = (my_key_index + offset_from_my_key) % ring_size;
             let mut hash = initial_hash.clone();
             hash.update(next_hash_update.compress());
             cs[index] = Scalar::from_hash(hash);
@@ -321,7 +338,7 @@ impl PrivateKey {
         }
     }
 
-    fn public(&self) -> PublicKey {
+    pub fn public(&self) -> PublicKey {
         PublicKey {
             holder: self.holder.clone(),
             keypoint: RistrettoPoint::mul_base(&self.key),
