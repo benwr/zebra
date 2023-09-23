@@ -210,6 +210,9 @@ fn MyKeys(cx: Scope) -> Element {
                     th {
                         "Fingerprint"
                     }
+                    th {
+                        "Delete"
+                    }
                 }
             }
             tbody {
@@ -225,12 +228,13 @@ fn MyKeys(cx: Scope) -> Element {
                         }
                         td {
                             class: "actions",
-                            button {
-                                "Copy Public Key",
-                            }
-                            button {
-                                "Send To New Device"
-                            }
+                        }
+                        td {
+                            class: "fingerprint",
+                            k.fingerprint()
+                        }
+                        td {
+                            class: "delete",
                             button {
                                 onclick: move |_| {
                                     match dbresult.write().deref_mut() {
@@ -240,12 +244,8 @@ fn MyKeys(cx: Scope) -> Element {
                                         Err(_e) => {}
                                     }
                                 },
-                                "Delete",
+                                "X",
                             }
-                        }
-                        td {
-                            class: "fingerprint",
-                            k.fingerprint()
                         }
                     }
                 }
@@ -281,9 +281,6 @@ fn MyKeys(cx: Scope) -> Element {
                     }
                 }
             }
-        }
-        button {
-            "Receive Keypair From Other Device"
         }
     })
 }

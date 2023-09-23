@@ -75,6 +75,10 @@ td {
 
 td.fingerprint {
   font-family: monospace;
+  text-align: center;
+  padding-left: 4em;
+  padding-right: 4em;
+  width: 18em;
 }
 
 td.name {
@@ -88,6 +92,10 @@ td.email {
 
 td.actions {
   text-align: right;
+}
+
+td.delete {
+  text-align: center;
 }
 
 p.copyright_info {
