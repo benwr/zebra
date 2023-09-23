@@ -312,7 +312,9 @@ impl PublicKey {
     pub fn fingerprint(&self) -> String {
         let mut buffer = vec![];
         let _ = self.serialize(&mut buffer);
-        let mut res = z85::encode(Sha3_256::digest(buffer)).chars().collect::<Vec<_>>();
+        let mut res = z85::encode(Sha3_256::digest(buffer))
+            .chars()
+            .collect::<Vec<_>>();
         res.insert(35, ' ');
         res.insert(30, ' ');
         res.insert(25, ' ');
@@ -321,6 +323,22 @@ impl PublicKey {
         res.insert(10, ' ');
         res.insert(5, ' ');
         res.into_iter().collect()
+    }
+}
+
+impl From<PublicKey> for String {
+    fn from(k: PublicKey) -> String {
+        let mut buffer = vec![];
+        k.holder_attestation
+            .serialize(&mut buffer)
+            .expect("Serialization into unbounded vec failed");
+        format!(
+            "[{} <{}> {} {}]",
+            k.holder.name,
+            k.holder.email,
+            z85::encode(k.keypoint.compress()),
+            z85::encode(buffer)
+        )
     }
 }
 

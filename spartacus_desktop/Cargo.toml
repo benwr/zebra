@@ -13,6 +13,7 @@ name = "Spartacus"
 path = "src/main.rs"
 
 [dependencies]
+copypasta = "0.8"
 dioxus = "0.4.0"
 dioxus-desktop = "0.4.0"
 secmem-proc = "0.3"

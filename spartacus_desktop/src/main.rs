@@ -3,6 +3,7 @@
 use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 
+use copypasta::{ClipboardContext, ClipboardProvider};
 use dioxus::prelude::*;
 
 use printable_ascii::PrintableAsciiString;
@@ -210,6 +211,14 @@ fn MyKeys(cx: Scope) -> Element {
                         }
                         td {
                             class: "actions",
+                            button {
+                                onclick: move |_| {
+                                    if let Ok(mut ctx) = ClipboardContext::new() {
+                                        let _ = ctx.set_contents(k.clone().into());
+                                    }
+                                },
+                                "Copy public key"
+                            }
                         }
                         td {
                             class: "fingerprint",
