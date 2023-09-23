@@ -3,7 +3,7 @@
 use dioxus::prelude::*;
 
 use spartacus::about::About;
-use spartacus_storage::{Database, default_db_path};
+use spartacus_storage::{default_db_path, Database};
 
 fn main() {
     // This is overkill, but also cheap.
@@ -155,11 +155,11 @@ fn TabSelect(cx: Scope) -> Element {
 
 fn MyKeys(cx: Scope) -> Element {
     use std::ops::Deref;
-    let dbresult = use_shared_state::<std::io::Result<Database>>(cx).unwrap().read();
+    let dbresult = use_shared_state::<std::io::Result<Database>>(cx)
+        .unwrap()
+        .read();
     let keys = match dbresult.deref() {
-        Ok(ref db) => {
-            db.visible_contents.my_public_keys.clone()
-        }
+        Ok(ref db) => db.visible_contents.my_public_keys.clone(),
         Err(ref e) => {
             return cx.render(rsx! {
                 "Error reading database: {e}"
@@ -242,7 +242,7 @@ fn MyKeys(cx: Scope) -> Element {
         button {
             "Receive Keypair From Other Device"
         }
-    })   
+    })
 }
 
 fn OtherKeys(cx: Scope) -> Element {

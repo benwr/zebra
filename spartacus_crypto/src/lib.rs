@@ -260,7 +260,7 @@ impl Identity {
         // This text could be anything or nothing in principle, but it's good to make it obvious
         // when a malicious source might be leading a user to make a bogus attestation.
         result.extend_from_slice(
-            "!!!DO NOT SIGN THE FOLLOWING MESSAGE. DOING SO IS A SECURITY RISK!!!".as_bytes(),
+            "!!!DO NOT SIGN THE FOLLOWING MESSAGE. DOING SO IS A SECURITY RISK. SOMEONE IS PROBABLY TRYING TO TRICK YOU!!!".as_bytes(),
         );
         result.extend_from_slice(self.name.as_bytes());
         result.extend_from_slice(&[0xff]); // sentinel separating holder's name and email. Not a
