@@ -110,7 +110,7 @@ fn get_username() -> String {
 
 #[cfg(not(target_os = "android"))]
 fn get_or_create_db_key() -> std::io::Result<SecretString> {
-    let entry = match keyring::Entry::new_with_target("Common", SERVICE_NAME, &get_username()) {
+    let entry = match keyring::Entry::new(SERVICE_NAME, &get_username()) {
         Ok(entry) => entry,
         Err(e) => {
             return Err(std::io::Error::new(

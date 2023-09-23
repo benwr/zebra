@@ -27,17 +27,8 @@ enum ActiveTab {
     About,
 }
 
-struct SignText(String);
-struct VerifyText(String);
-struct PrivateNameFilter(String);
-struct PrivateEmailFilter(String);
-struct PrivateFingerprintFilter(String);
 struct NewPrivateName(String);
-struct NewPrivateEmail(String);
-struct AcceptPrivatePassphrase(String);
-struct PublicNameFilter(String);
-struct PublicEmailFilter(String);
-struct PublicFingerprintFilter(String);
+struct NewPrivateEmail(PrintableAsciiString);
 struct SignListNameFilter(String);
 struct SignListEmailFilter(String);
 struct SignListFingerprintFilter(String);
@@ -52,20 +43,11 @@ fn App(cx: Scope) -> Element {
     })));
 
     use_shared_state_provider(cx, || ActiveTab::MyKeys);
-    use_shared_state_provider(cx, || PrivateNameFilter(String::new()));
-    use_shared_state_provider(cx, || PrivateEmailFilter(String::new()));
-    use_shared_state_provider(cx, || PrivateFingerprintFilter(String::new()));
     use_shared_state_provider(cx, || NewPrivateName(String::new()));
-    use_shared_state_provider(cx, || NewPrivateEmail(String::new()));
-    use_shared_state_provider(cx, || AcceptPrivatePassphrase(String::new()));
-    use_shared_state_provider(cx, || PublicNameFilter(String::new()));
-    use_shared_state_provider(cx, || PublicEmailFilter(String::new()));
-    use_shared_state_provider(cx, || PublicFingerprintFilter(String::new()));
-    use_shared_state_provider(cx, || SignText(String::new()));
+    use_shared_state_provider(cx, || NewPrivateEmail(PrintableAsciiString::default()));
     use_shared_state_provider(cx, || SignListNameFilter(String::new()));
     use_shared_state_provider(cx, || SignListEmailFilter(String::new()));
     use_shared_state_provider(cx, || SignListFingerprintFilter(String::new()));
-    use_shared_state_provider(cx, || VerifyText(String::new()));
     use_shared_state_provider(cx, || Database::new(default_db_path()));
 
     cx.render(rsx! {
@@ -185,7 +167,7 @@ fn MyKeys(cx: Scope) -> Element {
                         if let Ok(email) = PrintableAsciiString::from_str(&new_private_email_copy) {
                             if let Ok(()) = db.new_private_key(&new_private_name_copy, &email) {
                                 *new_private_name.write() = NewPrivateName("".to_string());
-                                *new_private_email.write() = NewPrivateEmail("".to_string());
+                                *new_private_email.write() = NewPrivateEmail(PrintableAsciiString::default());
                             }
                         }
                     }
@@ -265,7 +247,13 @@ fn MyKeys(cx: Scope) -> Element {
                             class: "new_key_email_input",
                             value: "{new_private_email_val}",
                             form: new_key_form_id,
-                            oninput: move |evt| *new_private_email.write() = NewPrivateEmail(evt.value.clone())
+                            oninput: move |evt| {
+                                if let Ok(new) = PrintableAsciiString::from_str(&evt.value) {
+                                    *new_private_email.write() = NewPrivateEmail(new)
+                                } else {
+                                    *new_private_email.write() = NewPrivateEmail(new_private_email_val.clone())
+                                }
+                            }
                         }
                     }
                     td {
