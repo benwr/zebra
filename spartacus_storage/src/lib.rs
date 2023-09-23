@@ -147,11 +147,8 @@ fn get_or_create_db_key() -> std::io::Result<SecretString> {
 
 impl Database {
     pub fn new<P: AsRef<Path> + std::fmt::Debug>(path: P) -> std::io::Result<Self> {
-        match path.as_ref().parent() {
-            Some(p) => {
-                std::fs::create_dir_all(p)?;
-            }
-            None => {}
+        if let Some(p) = path.as_ref().parent() {
+            std::fs::create_dir_all(p)?;
         }
         let _lockedfile = OpenOptions::new()
             .read(true)
@@ -235,7 +232,7 @@ impl Database {
             Ok(w) => w,
             Err(e) => return Err(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
         };
-        writer.write_all(&mut buffer)?;
+        writer.write_all(&buffer)?;
         writer.finish()?;
 
         let f = tmpfile.persist(&self.db_path)?;
