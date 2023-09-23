@@ -312,7 +312,7 @@ impl PublicKey {
 
 /// A complete private key, containing all the information required to store it to disk, or to
 /// produce new ring signatures.
-#[derive(Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize)]
+#[derive(Clone, Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize)]
 pub struct PrivateKey {
     pub holder: Identity,
     key: Scalar,

@@ -1,0 +1,20 @@
+[package]
+name = "spartacus_storage"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+age = "0.9"
+borsh = { version = "1.0.0-alpha.4", features = ["derive"] }
+directories = "5"
+fs2 = "0.4"
+keyring = "2"
+ouroboros = "0.18"
+rand = "0.8"
+tempfile = "3"
+time = "0.3"
+whoami = "1"
+zeroize = { version = "1", features = ["zeroize_derive"] }
+
+spartacus_crypto = { path = "../spartacus_crypto" }
+printable_ascii = { path = "../printable_ascii" }
