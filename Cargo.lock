@@ -8,6 +8,8 @@ version = "0.1.0"
 dependencies = [
  "dioxus",
  "dioxus-desktop",
+ "secmem-proc",
+ "spartacus_storage",
 ]
 
 [[package]]
@@ -2952,7 +2954,7 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
- "windows",
+ "windows 0.44.0",
 ]
 
 [[package]]
@@ -3032,8 +3034,10 @@ checksum = "d7db8590df6dfcd144d22afd1b83b36c21a18d7cbc1dc4bb5295a8712e9eb662"
 dependencies = [
  "bitflags 2.4.0",
  "errno",
+ "itoa 1.0.9",
  "libc",
  "linux-raw-sys 0.4.7",
+ "once_cell",
  "windows-sys 0.48.0",
 ]
 
@@ -3077,6 +3081,20 @@ dependencies = [
  "pbkdf2",
  "salsa20",
  "sha2",
+]
+
+[[package]]
+name = "secmem-proc"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b19a1b87c3bab9f9ce77a4317680035d068c6f3911fc3e0e37e0c80ae8d5254"
+dependencies = [
+ "anyhow",
+ "cfg-if",
+ "libc",
+ "rustix 0.38.13",
+ "thiserror",
+ "windows 0.48.0",
 ]
 
 [[package]]
@@ -3364,6 +3382,7 @@ dependencies = [
  "printable_ascii",
  "rand 0.8.5",
  "sha3",
+ "z85",
  "zeroize",
 ]
 
@@ -3534,7 +3553,7 @@ dependencies = [
  "tao-macros",
  "unicode-segmentation",
  "uuid",
- "windows",
+ "windows 0.44.0",
  "windows-implement",
  "x11-dl",
 ]
@@ -4075,7 +4094,7 @@ checksum = "11296e5daf3a653b79bf47d66c380e4143d5b9c975818871179a3bda79499562"
 dependencies = [
  "webview2-com-macros",
  "webview2-com-sys",
- "windows",
+ "windows 0.44.0",
  "windows-implement",
 ]
 
@@ -4100,7 +4119,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
- "windows",
+ "windows 0.44.0",
  "windows-bindgen",
  "windows-metadata",
 ]
@@ -4155,6 +4174,15 @@ dependencies = [
  "windows-implement",
  "windows-interface",
  "windows-targets 0.42.2",
+]
+
+[[package]]
+name = "windows"
+version = "0.48.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e686886bc078bc1b0b600cac0147aadb815089b6e4da64016cbd754b6342700f"
+dependencies = [
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -4377,7 +4405,7 @@ dependencies = [
  "webkit2gtk",
  "webkit2gtk-sys",
  "webview2-com",
- "windows",
+ "windows 0.44.0",
  "windows-implement",
 ]
 
@@ -4422,6 +4450,12 @@ dependencies = [
  "nix",
  "winapi",
 ]
+
+[[package]]
+name = "z85"
+version = "3.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2a599daf1b507819c1121f0bf87fa37eb19daac6aff3aefefd4e6e2e0f2020fc"
 
 [[package]]
 name = "zbus"

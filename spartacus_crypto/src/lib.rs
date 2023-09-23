@@ -1,6 +1,6 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 use rand::rngs::OsRng;
-use sha3::{Digest, Sha3_512};
+use sha3::{Digest, Sha3_512, Sha3_256};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use printable_ascii::PrintableAsciiString;
@@ -307,6 +307,12 @@ impl PublicKey {
         }
         self.holder_attestation
             .verify(&self.holder.bytes_for_attestation(&self.keypoint))
+    }
+
+    pub fn fingerprint(&self) -> String {
+        let mut buffer = vec![];
+        let _ = self.serialize(&mut buffer);
+        z85::encode(Sha3_256::digest(buffer))
     }
 }
 

@@ -10,4 +10,5 @@ borsh = { version = "1.0.0-alpha.4", features = ["derive"] }
 curve25519-dalek = { version = "4", features = ["alloc", "digest", "rand_core"] }
 rand = { version = "0.8", features = ["getrandom"] }
 sha3 = "0.10"
+z85 = "3"
 zeroize = { version = "1", features = ["zeroize_derive"] }

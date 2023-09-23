@@ -10,21 +10,16 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 use printable_ascii::PrintableAsciiString;
 use spartacus_crypto::{Identity, PrivateKey, PublicKey, SignedMessage};
 
-// The flow here should be:
-// 1. try_open_db_file gets you a LockedDatabaseFile (or fails)
-// 2. try_decrypt_db either notices that the db file is empty and gives you an empty DB attached to
-//    the given file, or else notices that it is not an empty file, and attempts to decrypt it. If
-//    the decryption succeeds and produces a valid DB, it gives you that. If the decryption fails,
-//    it reports the failure.
-// 3. methods on the Database ensure that the on-disk DB is up to date before returning.
-
-// Databases will be "human-sized", i.e. almost always have less than 100 private keys and less than
-// 10,000 public keys. Each keypair is <1KiB, which means 10,000 of them are <10MiB. As a result, I
-// currently expect that the best method for storing things is to simply write the whole db to
-// disk on every change, into a file in a temporary directory, and then moving it to overwrite the
-// existing db file when writing is complete. This should roughly ensure that the db is never in a
-// bad state, even if the computer crashes or loses power. That said, it also means we may want to
-// do some compression in order to minimize that file size.
+// Databases will be "human-sized", i.e. almost always have less than 100 private keys and less
+// than 10,000 public keys. Each public key is ~40 bytes for the identity, plus 32 bytes for the
+// keypoint, plus 96 for the attestation and 72 for the verification info, for a total of <250
+// bytes, which means 10,000 of them are <3MiB. As a result, I currently expect that the best
+// method for storing things is to simply write the whole db to disk on every change, into a
+// temporary file, and then move it to overwrite the existing db file when writing is complete.
+// This should roughly ensure that the db is never in a bad state, even if the computer crashes or
+// loses power. Only about 112 of those 250 bytes are compressible at all, so we can get at most a
+// 50% improvement in file size by adding compression. I think we should at least skip it for now,
+// and probably just never worry about it.
 
 const SERVICE_NAME: &str = "Spartacus";
 
@@ -64,19 +59,10 @@ impl VerificationInfo {
     }
 }
 
-#[derive(BorshDeserialize, BorshSerialize, Zeroize, ZeroizeOnDrop)]
+#[derive(Default, BorshDeserialize, BorshSerialize, Zeroize, ZeroizeOnDrop)]
 struct DatabaseContentsV0 {
     private_keys: Vec<PrivateKey>,
     public_keys: Vec<(PublicKey, VerificationInfo)>,
-}
-
-impl Default for DatabaseContentsV0 {
-    fn default() -> Self {
-        DatabaseContentsV0 {
-            private_keys: vec![],
-            public_keys: vec![],
-        }
-    }
 }
 
 #[derive(BorshDeserialize, BorshSerialize, Zeroize)]
@@ -95,6 +81,7 @@ impl Default for SpartacusDatabaseContents {
     }
 }
 
+#[derive(Default)]
 pub struct VisibleDatabaseContents {
     pub my_public_keys: Vec<PublicKey>,
     pub their_public_keys: Vec<(PublicKey, VerificationInfo)>,
@@ -102,30 +89,20 @@ pub struct VisibleDatabaseContents {
 
 impl DatabaseContentsV0 {
     fn get_visible(&self) -> VisibleDatabaseContents {
-        match self {
-            DatabaseContentsV0 {
-                private_keys,
-                public_keys,
-            } => VisibleDatabaseContents {
-                my_public_keys: private_keys.into_iter().map(|k| k.public()).collect(),
-                their_public_keys: public_keys.to_vec(),
-            },
-        }
-    }
-}
-
-impl Default for VisibleDatabaseContents {
-    fn default() -> Self {
+        let DatabaseContentsV0 {
+            private_keys,
+            public_keys,
+        } = self;
         VisibleDatabaseContents {
-            my_public_keys: vec![],
-            their_public_keys: vec![],
+            my_public_keys: private_keys.iter().map(|k| k.public()).collect(),
+            their_public_keys: public_keys.to_vec(),
         }
     }
 }
 
 fn get_username() -> String {
     let mut result = whoami::username();
-    if result.len() == 0 {
+    if result.is_empty() {
         result = "spartacus_user".to_string();
     }
     result
@@ -169,8 +146,13 @@ fn get_or_create_db_key() -> std::io::Result<SecretString> {
 }
 
 impl Database {
-    pub fn new<P: AsRef<Path>>(path: P) -> std::io::Result<Self> {
-        std::fs::create_dir_all(app_dir())?;
+    pub fn new<P: AsRef<Path> + std::fmt::Debug>(path: P) -> std::io::Result<Self> {
+        match path.as_ref().parent() {
+            Some(p) => {
+                std::fs::create_dir_all(p)?;
+            }
+            None => {}
+        }
         let _lockedfile = OpenOptions::new()
             .read(true)
             .write(true)
@@ -189,10 +171,16 @@ impl Database {
         })
     }
 
-    fn get_contents<P: AsRef<Path>>(path: &P) -> std::io::Result<DatabaseContentsV0> {
+    fn get_contents<P: AsRef<Path> + std::fmt::Debug>(
+        path: &P,
+    ) -> std::io::Result<DatabaseContentsV0> {
         let pw = get_or_create_db_key()?;
 
-        let file = OpenOptions::new().create(true).read(true).open(path)?;
+        let file = OpenOptions::new()
+            .create(true)
+            .read(true)
+            .write(true)
+            .open(path)?;
 
         if file.metadata()?.len() == 0 {
             return Ok(DatabaseContentsV0::default());
@@ -269,13 +257,10 @@ impl Database {
         self.write_contents(contents)
     }
 
-    pub fn add_public_keys(
-        &mut self,
-        public_keys: &[PublicKey],
-    ) -> std::io::Result<()> {
+    pub fn add_public_keys(&mut self, public_keys: &[PublicKey]) -> std::io::Result<()> {
         let mut contents = Self::get_contents(&self.db_path)?;
-        contents.public_keys.extend_from_slice(
-            &mut public_keys
+        contents.public_keys.extend(
+            public_keys
                 .iter()
                 .map(|k| (k.clone(), VerificationInfo::unverified()))
                 .collect::<Vec<_>>(),

@@ -3,8 +3,14 @@
 use dioxus::prelude::*;
 
 use spartacus::about::About;
+use spartacus_storage::{Database, default_db_path};
 
 fn main() {
+    // This is overkill, but also cheap.
+    if let Err(e) = secmem_proc::harden_process() {
+        eprintln!("Error: Could not harden process; exiting. {e}");
+        return;
+    }
     dioxus_desktop::launch(App);
 }
 
@@ -17,6 +23,21 @@ enum ActiveTab {
     About,
 }
 
+struct SignText(String);
+struct VerifyText(String);
+struct PrivateNameFilter(String);
+struct PrivateEmailFilter(String);
+struct PrivateFingerprintFilter(String);
+struct NewPrivateName(String);
+struct NewPrivateEmail(String);
+struct AcceptPrivatePassphrase(String);
+struct PublicNameFilter(String);
+struct PublicEmailFilter(String);
+struct PublicFingerprintFilter(String);
+struct SignListNameFilter(String);
+struct SignListEmailFilter(String);
+struct SignListFingerprintFilter(String);
+
 fn App(cx: Scope) -> Element {
     use dioxus_desktop::tao::dpi::{LogicalSize, Size};
     let desktop = dioxus_desktop::use_window(cx);
@@ -27,6 +48,21 @@ fn App(cx: Scope) -> Element {
     })));
 
     use_shared_state_provider(cx, || ActiveTab::MyKeys);
+    use_shared_state_provider(cx, || PrivateNameFilter(String::new()));
+    use_shared_state_provider(cx, || PrivateEmailFilter(String::new()));
+    use_shared_state_provider(cx, || PrivateFingerprintFilter(String::new()));
+    use_shared_state_provider(cx, || NewPrivateName(String::new()));
+    use_shared_state_provider(cx, || NewPrivateEmail(String::new()));
+    use_shared_state_provider(cx, || AcceptPrivatePassphrase(String::new()));
+    use_shared_state_provider(cx, || PublicNameFilter(String::new()));
+    use_shared_state_provider(cx, || PublicEmailFilter(String::new()));
+    use_shared_state_provider(cx, || PublicFingerprintFilter(String::new()));
+    use_shared_state_provider(cx, || SignText(String::new()));
+    use_shared_state_provider(cx, || SignListNameFilter(String::new()));
+    use_shared_state_provider(cx, || SignListEmailFilter(String::new()));
+    use_shared_state_provider(cx, || SignListFingerprintFilter(String::new()));
+    use_shared_state_provider(cx, || VerifyText(String::new()));
+    use_shared_state_provider(cx, || Database::new(default_db_path()));
 
     cx.render(rsx! {
         section {
@@ -118,14 +154,23 @@ fn TabSelect(cx: Scope) -> Element {
 }
 
 fn MyKeys(cx: Scope) -> Element {
+    use std::ops::Deref;
+    let dbresult = use_shared_state::<std::io::Result<Database>>(cx).unwrap().read();
+    let keys = match dbresult.deref() {
+        Ok(ref db) => {
+            db.visible_contents.my_public_keys.clone()
+        }
+        Err(ref e) => {
+            return cx.render(rsx! {
+                "Error reading database: {e}"
+            })
+        }
+    };
     cx.render(rsx! {
         table {
             class: "mykeys",
             thead {
                 tr {
-                    th {
-                        "Fingerprint"
-                    }
                     th {
                         "Name"
                     }
@@ -133,46 +178,71 @@ fn MyKeys(cx: Scope) -> Element {
                         "Email"
                     }
                     th {
+                        "Fingerprint"
+                    }
+                    th {
                         "Actions"
                     }
                 }
             }
             tbody {
+                for k in keys {
+                    tr {
+                        td {
+                            class: "name",
+                            k.holder.name.clone(),
+                        }
+                        td {
+                            class: "email",
+                            k.holder.email.as_str().to_string(),
+                        }
+                        td {
+                            class: "fingerprint",
+                            k.fingerprint()
+                        }
+                        td {
+                            class: "actions",
+                            button {
+                                "Copy Public Key",
+                            }
+                            button {
+                                "Send To New Device"
+                            }
+                            button {
+                                "Delete",
+                            }
+                        }
+                    }
+                }
                 tr {
                     td {
-                        class: "fingerprint",
-                        "jf^:GW)T=&^}}dg-$6VVm"
-                    }
-                    td {
                         class: "name",
-                        "Ben Weinstein-Raun"
+                        input {
+                            class: "new_key_name_input",
+                        }
                     }
                     td {
                         class: "email",
-                        "b@w-r.me"
+                        input {
+                            class: "new_key_email_input",
+                        }
+                    }
+                    td {
+                        class: "fingerprint",
                     }
                     td {
                         class: "actions",
                         button {
-                            "Copy Public Key",
-                        }
-                        button {
-                            "Send To New Device"
-                        }
-                        button {
-                            "Delete",
+                            "Create New Keypair"
                         }
                     }
                 }
             }
         }
         button {
-            "Create New Keypair"
-        }
-        button {
             "Receive Keypair From Other Device"
         }
-    })
+    })   
 }
 
 fn OtherKeys(cx: Scope) -> Element {
