@@ -20,15 +20,43 @@ can tell that *someone* in that group signed the message. But they can't tell
 
 ## Design
 
-Spartacus is intended to be as simple as possible, while being fairly paranoid
-about storing secrets.
+Spartacus is designed with the following principles in mind, in order from most
+important to least important:
+
+1. Spartacus should be a trustworthy implementation of the theory of ring
+   signatures. If you observe a signed message, and the app successfully
+   verifies the signature, you should be able to feel confident in the
+   signature.
+2. Spartacus should be simple to use and hard to misuse. It should be almost
+   trivial to create a signature, or import a key. It should be almost
+   impossible to leak your private key, or compromise your anonymity within a
+   ring.
+3. Spartacus should be implemented as simply as possible, with the minimum set
+   of dependencies. The more crucial a piece of code is for providing the
+   trustworthiness guarantee, the fewer dependencies it should have.
 
 Spartacus is a [dioxus](https://dioxuslabs.com) app. This means that the user
-interface code can be understood by anyone with knowledge of web programming,
-but the app relies on the operating system's web view rather than a packaged
-browser.
+interface code can be understood by anyone with knowledge of web programming
+and Rust, but the app relies on the operating system's web view rather than a
+packaged browser. This improves resource usage somewhat compared to an electon
+app.
 
-It uses [age](https://github.com/FiloSottile/age) to encrypt an extremely
+### Cryptography
+
+Spartacus's ring signature implementation is based on the algorithm presented
+in the book [Zero to Monero: Second
+Edition](https://www.getmonero.org/library/Zero-to-Monero-2-0-0.pdf).
+We use the [Ristretto group](https://ristretto.group/) as our prime order
+group, and in particular the [dalek-cryptography](https://dalek.rs/)
+implementation.
+
+Public keys (technically, self-signed certificates) contain the requisite group
+element, as well as a signature that verifies that the holder of the key claims
+to be associated with the identity provided.
+
+### Storage
+
+Spartacus uses [age](https://github.com/FiloSottile/age) to encrypt an extremely
 simple database of keys. The password for this database is chosen randomly and
 stored in the system's keychain. So the operating system will prompt the user
 before allowing the database to be unlocked (on app start, or when modifying
