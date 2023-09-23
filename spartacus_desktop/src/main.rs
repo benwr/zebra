@@ -1,7 +1,11 @@
 #![allow(non_snake_case)]
 
+use std::ops::{Deref, DerefMut};
+use std::str::FromStr;
+
 use dioxus::prelude::*;
 
+use printable_ascii::PrintableAsciiString;
 use spartacus::about::About;
 use spartacus_storage::{default_db_path, Database};
 
@@ -154,11 +158,15 @@ fn TabSelect(cx: Scope) -> Element {
 }
 
 fn MyKeys(cx: Scope) -> Element {
-    use std::ops::Deref;
-    let dbresult = use_shared_state::<std::io::Result<Database>>(cx)
-        .unwrap()
-        .read();
-    let keys = match dbresult.deref() {
+    let dbresult = use_shared_state::<std::io::Result<Database>>(cx).unwrap();
+    let dbread = dbresult.read();
+    let new_private_name = use_shared_state::<NewPrivateName>(cx).unwrap();
+    let new_private_name_val = new_private_name.read().deref().0.clone();
+    let new_private_name_copy = new_private_name.read().deref().0.clone();
+    let new_private_email = use_shared_state::<NewPrivateEmail>(cx).unwrap();
+    let new_private_email_val = new_private_email.read().deref().0.clone();
+    let new_private_email_copy = new_private_email.read().deref().0.clone();
+    let keys = match dbread.deref() {
         Ok(ref db) => db.visible_contents.my_public_keys.clone(),
         Err(ref e) => {
             return cx.render(rsx! {
@@ -166,7 +174,26 @@ fn MyKeys(cx: Scope) -> Element {
             })
         }
     };
+
+    let new_key_form_id = "new_key_form";
+
     cx.render(rsx! {
+        form {
+            onsubmit: move |_| {
+                match dbresult.write().deref_mut() {
+                    Ok(ref mut db) => {
+                        if let Ok(email) = PrintableAsciiString::from_str(&new_private_email_copy) {
+                            if let Ok(()) = db.new_private_key(&new_private_name_copy, &email) {
+                                *new_private_name.write() = NewPrivateName("".to_string());
+                                *new_private_email.write() = NewPrivateEmail("".to_string());
+                            }
+                        }
+                    }
+                    Err(_e) => {}
+                }
+            },
+            id: new_key_form_id
+        }
         table {
             class: "mykeys",
             thead {
@@ -178,15 +205,15 @@ fn MyKeys(cx: Scope) -> Element {
                         "Email"
                     }
                     th {
-                        "Fingerprint"
+                        "Actions"
                     }
                     th {
-                        "Actions"
+                        "Fingerprint"
                     }
                 }
             }
             tbody {
-                for k in keys {
+                for (i, k) in keys.into_iter().enumerate() {
                     tr {
                         td {
                             class: "name",
@@ -197,10 +224,6 @@ fn MyKeys(cx: Scope) -> Element {
                             k.holder.email.as_str().to_string(),
                         }
                         td {
-                            class: "fingerprint",
-                            k.fingerprint()
-                        }
-                        td {
                             class: "actions",
                             button {
                                 "Copy Public Key",
@@ -209,8 +232,20 @@ fn MyKeys(cx: Scope) -> Element {
                                 "Send To New Device"
                             }
                             button {
+                                onclick: move |_| {
+                                    match dbresult.write().deref_mut() {
+                                        Ok(ref mut db) => {
+                                            let _ = db.delete_private_key(i);
+                                        }
+                                        Err(_e) => {}
+                                    }
+                                },
                                 "Delete",
                             }
+                        }
+                        td {
+                            class: "fingerprint",
+                            k.fingerprint()
                         }
                     }
                 }
@@ -219,22 +254,30 @@ fn MyKeys(cx: Scope) -> Element {
                         class: "name",
                         input {
                             class: "new_key_name_input",
+                            value: "{new_private_name_val}",
+                            form: new_key_form_id,
+                            oninput: move |evt| *new_private_name.write() = NewPrivateName(evt.value.clone())
                         }
                     }
                     td {
                         class: "email",
                         input {
                             class: "new_key_email_input",
+                            value: "{new_private_email_val}",
+                            form: new_key_form_id,
+                            oninput: move |evt| *new_private_email.write() = NewPrivateEmail(evt.value.clone())
+                        }
+                    }
+                    td {
+                        class: "actions",
+                        input {
+                            "type": "submit",
+                            form: new_key_form_id,
+                            value: "Create New Keypair"
                         }
                     }
                     td {
                         class: "fingerprint",
-                    }
-                    td {
-                        class: "actions",
-                        button {
-                            "Create New Keypair"
-                        }
                     }
                 }
             }

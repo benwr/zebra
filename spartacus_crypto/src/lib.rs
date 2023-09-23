@@ -312,7 +312,15 @@ impl PublicKey {
     pub fn fingerprint(&self) -> String {
         let mut buffer = vec![];
         let _ = self.serialize(&mut buffer);
-        z85::encode(Sha3_256::digest(buffer))
+        let mut res = z85::encode(Sha3_256::digest(buffer)).chars().collect::<Vec<_>>();
+        res.insert(35, ' ');
+        res.insert(30, ' ');
+        res.insert(25, ' ');
+        res.insert(20, ' ');
+        res.insert(15, ' ');
+        res.insert(10, ' ');
+        res.insert(5, ' ');
+        res.into_iter().collect()
     }
 }
 

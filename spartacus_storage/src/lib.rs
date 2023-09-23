@@ -166,14 +166,14 @@ impl Database {
 
         Ok(Self {
             _lockedfile,
-            visible_contents: contents.get_visible(),
+            visible_contents: contents.0.get_visible(),
             db_path: path.as_ref().to_path_buf(),
         })
     }
 
     fn get_contents<P: AsRef<Path> + std::fmt::Debug>(
         path: &P,
-    ) -> std::io::Result<DatabaseContentsV0> {
+    ) -> std::io::Result<(DatabaseContentsV0, SecretString)> {
         let pw = get_or_create_db_key()?;
 
         let file = OpenOptions::new()
@@ -183,7 +183,7 @@ impl Database {
             .open(path)?;
 
         if file.metadata()?.len() == 0 {
-            return Ok(DatabaseContentsV0::default());
+            return Ok((DatabaseContentsV0::default(), pw));
         }
 
         let mut reader = match age::Decryptor::new(&file) {
@@ -217,13 +217,27 @@ impl Database {
         reader.read_to_end(&mut bytes)?;
         let SpartacusDatabaseContents::V0(res) =
             BorshDeserialize::deserialize(&mut bytes.as_ref())?;
-        Ok(res)
+        Ok((res, pw))
     }
 
-    fn write_contents(&mut self, db: DatabaseContentsV0) -> std::io::Result<()> {
+    fn write_contents(&mut self, db: DatabaseContentsV0, pw: SecretString) -> std::io::Result<()> {
+        use std::io::Write;
+
         let result_vis = db.get_visible();
+
+        let mut buffer = vec![];
+        SpartacusDatabaseContents::V0(db).serialize(&mut buffer)?;
+
         let mut tmpfile = tempfile::NamedTempFile::new()?;
-        SpartacusDatabaseContents::V0(db).serialize(&mut tmpfile)?;
+        let encryptor = age::Encryptor::with_user_passphrase(pw);
+
+        let mut writer = match encryptor.wrap_output(&mut tmpfile) {
+            Ok(w) => w,
+            Err(e) => return Err(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+        };
+        writer.write_all(&mut buffer)?;
+        writer.finish()?;
+
         let f = tmpfile.persist(&self.db_path)?;
         f.sync_all()?;
         self.visible_contents = result_vis;
@@ -236,7 +250,7 @@ impl Database {
         my_key_index: usize,
         other_key_indexes: &[usize],
     ) -> std::io::Result<SignedMessage> {
-        let contents = Self::get_contents(&self.db_path)?;
+        let (contents, _) = Self::get_contents(&self.db_path)?;
         let my_key = contents.private_keys[my_key_index].clone();
         let mut other_keys = Vec::with_capacity(other_key_indexes.len() + 1);
         for i in other_key_indexes {
@@ -246,32 +260,32 @@ impl Database {
     }
 
     pub fn set_verified(&mut self, public_key_index: usize) -> std::io::Result<()> {
-        let mut contents = Self::get_contents(&self.db_path)?;
+        let (mut contents, pw) = Self::get_contents(&self.db_path)?;
         contents.public_keys[public_key_index].1 = VerificationInfo::now();
-        self.write_contents(contents)
+        self.write_contents(contents, pw)
     }
 
     pub fn set_unverified(&mut self, public_key_index: usize) -> std::io::Result<()> {
-        let mut contents = Self::get_contents(&self.db_path)?;
+        let (mut contents, pw) = Self::get_contents(&self.db_path)?;
         contents.public_keys[public_key_index].1 = VerificationInfo::unverified();
-        self.write_contents(contents)
+        self.write_contents(contents, pw)
     }
 
     pub fn add_public_keys(&mut self, public_keys: &[PublicKey]) -> std::io::Result<()> {
-        let mut contents = Self::get_contents(&self.db_path)?;
+        let (mut contents, pw) = Self::get_contents(&self.db_path)?;
         contents.public_keys.extend(
             public_keys
                 .iter()
                 .map(|k| (k.clone(), VerificationInfo::unverified()))
                 .collect::<Vec<_>>(),
         );
-        self.write_contents(contents)
+        self.write_contents(contents, pw)
     }
 
     pub fn delete_public_key(&mut self, index: usize) -> std::io::Result<()> {
-        let mut contents = Self::get_contents(&self.db_path)?;
+        let (mut contents, pw) = Self::get_contents(&self.db_path)?;
         contents.public_keys.remove(index);
-        self.write_contents(contents)
+        self.write_contents(contents, pw)
     }
 
     pub fn new_private_key(
@@ -288,20 +302,20 @@ impl Database {
     }
 
     pub fn import_private_key(&mut self, key: PrivateKey) -> std::io::Result<()> {
-        let mut contents = Self::get_contents(&self.db_path)?;
+        let (mut contents, pw) = Self::get_contents(&self.db_path)?;
         contents.private_keys.push(key);
-        self.write_contents(contents)
+        self.write_contents(contents, pw)
     }
 
     pub fn export_private_key(&mut self, index: usize) -> std::io::Result<PrivateKey> {
-        let contents = Self::get_contents(&self.db_path)?;
+        let (contents, _) = Self::get_contents(&self.db_path)?;
         Ok(contents.private_keys[index].clone())
     }
 
     pub fn delete_private_key(&mut self, index: usize) -> std::io::Result<()> {
-        let mut contents = Self::get_contents(&self.db_path)?;
+        let (mut contents, pw) = Self::get_contents(&self.db_path)?;
         contents.private_keys.remove(index);
-        self.write_contents(contents)
+        self.write_contents(contents, pw)
     }
 }
 

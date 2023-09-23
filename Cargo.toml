@@ -6,4 +6,41 @@ members = [
   "spartacus_desktop",
   "spartacus_storage",
   "printable_ascii",
+  "age",
+  "age-core",
 ]
+
+[workspace.package]
+edition = "2021"
+rust-version = "1.65"
+license = ""
+repository = ""
+
+[workspace.dependencies]
+printable_ascii = { path = "printable_ascii" }
+spartacus_crypto = { path = "spartacus_crypto" }
+spartacus_storage = { path = "spartacus_storage" }
+
+age = { version = "0.9.2", path = "age" }
+age-core = { version = "0.9.0", path = "age-core" }
+
+base64 = "0.21"
+bech32 = "0.9"
+borsh = { version = "1.0.0-alpha.4", features = ["derive"] }
+chacha20poly1305 = { version = "0.10", default-features = false, features = ["alloc"] }
+cookie-factory = "0.3.1"
+hkdf = "0.12"
+hmac = "0.12"
+i18n-embed = { version = "0.13", features = ["fluent-system"] }
+i18n-embed-fl = "0.6"
+lazy_static = "1"
+nom = { version = "7", default-features = false, features = ["alloc"] }
+rand = { version = "0.8", features = ["getrandom"] }
+rand_7 = { package = "rand", version = "0.7" }
+rust-embed = "6"
+scrypt = { version = "0.11", default-features = false }
+secrecy = "0.8"
+sha2 = "0.10"
+subtle = "2"
+x25519-dalek = "1"
+zeroize = { version = "1", features = ["zeroize_derive"] }

@@ -4,5 +4,5 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
-borsh = { version = "1.0.0-alpha.4", features = ["derive"] }
-zeroize = { version = "1", features = ["zeroize_derive"] }
+borsh.workspace = true
+zeroize.workspace = true

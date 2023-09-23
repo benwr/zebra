@@ -4,11 +4,12 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
-printable_ascii = { path = "../printable_ascii" }
+borsh.workspace = true
+printable_ascii.workspace = true
 
-borsh = { version = "1.0.0-alpha.4", features = ["derive"] }
+rand.workspace = true
+zeroize.workspace = true
+
 curve25519-dalek = { version = "4", features = ["alloc", "digest", "rand_core"] }
-rand = { version = "0.8", features = ["getrandom"] }
 sha3 = "0.10"
 z85 = "3"
-zeroize = { version = "1", features = ["zeroize_derive"] }
