@@ -230,7 +230,12 @@ impl Database {
 
         let mut writer = match encryptor.wrap_output(&mut tmpfile) {
             Ok(w) => w,
-            Err(e) => return Err(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+            Err(e) => {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    e.to_string(),
+                ))
+            }
         };
         writer.write_all(&buffer)?;
         writer.finish()?;
@@ -290,10 +295,10 @@ impl Database {
         name: &str,
         email: &PrintableAsciiString,
     ) -> std::io::Result<()> {
-        let identity = Identity {
-            name: name.to_string(),
-            email: email.clone(),
-        };
+        let identity = Identity::new(name, email).ok_or(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "Could not construct Identity",
+        ))?;
         let key = PrivateKey::new(identity);
         self.import_private_key(key)
     }

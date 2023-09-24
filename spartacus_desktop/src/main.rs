@@ -203,11 +203,11 @@ fn MyKeys(cx: Scope) -> Element {
                     tr {
                         td {
                             class: "name",
-                            k.holder.name.clone(),
+                            k.holder.name().clone(),
                         }
                         td {
                             class: "email",
-                            k.holder.email.as_str().to_string(),
+                            k.holder.email().as_str().to_string(),
                         }
                         td {
                             class: "actions",

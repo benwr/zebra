@@ -7,7 +7,8 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 // allowing users to mutate the latter at will.
 
 /// A string of bytes that is impossible to construct with any non-ASCII or non-printable
-/// characters.
+/// characters, or with spaces. This is mainly useful as a brute-force solution to avoid homoglyph
+/// attacks.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default, Zeroize, ZeroizeOnDrop)]
 pub struct PrintableAsciiString(Vec<u8>);
 

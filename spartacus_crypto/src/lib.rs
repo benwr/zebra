@@ -240,18 +240,40 @@ impl Signature {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize)]
+/// An identity used for creating a ring signature.
+///
+/// An identity always contains a name and an email address. The name can be almost any utf-8
+/// string: The only exception is that it cannot contain control codes. This ensures that we can
+/// cleanly serialize and deserialize it from a single line. The email address can be only ASCII
+/// strings that are both printable and not spaces. This is a brute-force method for preventing
+/// homoglyph attacks: In the future, we may add functionality for semi-automatically (weakly)
+/// verifying public keys over email. In that case, it's important that any email address that
+/// looks like a familiar one actually *is* that address and not a different one. Fortunately, even
+/// email addresses in regions that primarily use alternative character sets very rarely use
+/// non-ASCII characters.
+#[derive(Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop, BorshSerialize)]
 pub struct Identity {
-    pub name: String,
-    pub email: PrintableAsciiString, // Try to prevent homoglyph attacks in the address
+    name: String,
+    email: PrintableAsciiString,
 }
 
 impl Identity {
-    pub fn new(name: &str, email: &PrintableAsciiString) -> Self {
-        Self {
-            name: name.to_string(),
-            email: email.clone(),
+    pub fn new(name: &str, email: &str) -> Option<Self> {
+        if name.contains(char::is_control) {
+            return None;
         }
+        Some(Self {
+            name: name.to_string(),
+            email: PrintableAsciiString::from_str(email).ok()?,
+        })
+    }
+
+    pub fn name(&self) -> String {
+        self.name.clone()
+    }
+
+    pub fn email(&self) -> String {
+        self.email.to_string()
     }
 
     /// The information that, when signed and verified, suffices to prove that the given public
@@ -269,6 +291,17 @@ impl Identity {
         result.extend_from_slice(self.email.as_bytes());
         result.extend_from_slice(&keypoint.compress());
         result
+    }
+}
+
+impl BorshDeserialize for Identity {
+    fn deserialize_reader<R: std::io::Read>(r: &mut R) -> std::io::Result<Identity> {
+        let name = String::deserialize_reader(r)?;
+        let email = PrintableAsciiString::deserialize_reader(r)?;
+        Identity::new(&name, email.as_str()).ok_or(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "Error constructing Identity",
+        ))
     }
 }
 
@@ -365,10 +398,7 @@ impl FromStr for PublicKey {
             _ => return Err(()),
         };
 
-        let id = Identity {
-            name: name.to_string(),
-            email: PrintableAsciiString::from_str(email)?,
-        };
+        let id = Identity::new(name, email).ok_or(())?;
 
         let keypoint = z85::decode(keypoint).map_err(|_| ())?;
         let attestation = z85::decode(attestation).map_err(|_| ())?;
@@ -537,12 +567,12 @@ mod tests {
         let message = b"SPARTACVSSVM";
         let my_email = PrintableAsciiString::from_bytes(b"spartacus@example.com").unwrap();
         let my_name = "Spartacus";
-        let my_id = Identity::new(my_name, &my_email);
+        let my_id = Identity::new(my_name, &my_email).unwrap();
         let my_key = PrivateKey::new(my_id.clone());
 
         let other_email = PrintableAsciiString::from_bytes(b"notspartacus@example.com").unwrap();
         let other_name = "Gaius";
-        let other_id = Identity::new(other_name, &other_email);
+        let other_id = Identity::new(other_name, &other_email).unwrap();
         let other_key = PrivateKey::new(other_id.clone());
         let other_public = other_key.public();
 
@@ -558,7 +588,7 @@ mod tests {
     fn export_and_import_work() {
         let my_email = PrintableAsciiString::from_bytes(b"spartacus@example.com").unwrap();
         let my_name = "Spartacus";
-        let my_id = Identity::new(my_name, &my_email);
+        let my_id = Identity::new(my_name, &my_email).unwrap();
         let my_key = PrivateKey::new(my_id.clone());
         let export = String::from(my_key.public());
         let import = PublicKey::from_str(&export);
