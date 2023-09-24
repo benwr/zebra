@@ -1,9 +1,10 @@
+use std::str::FromStr;
+
 use borsh::{BorshDeserialize, BorshSerialize};
+use printable_ascii::PrintableAsciiString;
 use rand::rngs::OsRng;
 use sha3::{Digest, Sha3_256, Sha3_512};
 use zeroize::{Zeroize, ZeroizeOnDrop};
-
-use printable_ascii::PrintableAsciiString;
 
 // We use newtype wrappers for RistrettoPoint and Scalar because we need to (de)serialize them
 // using Borsh. Their APIs stay private to this file, and we only duplicate as much as we use from
@@ -148,7 +149,7 @@ fn hash_message_and_ring<'a>(
     message_and_ring_hash
 }
 
-#[derive(Clone, Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize)]
+#[derive(Clone, PartialEq, Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize)]
 pub struct Signature {
     challenge: Scalar,
     ring_responses: Vec<(RistrettoPoint, Scalar)>,
@@ -239,7 +240,7 @@ impl Signature {
     }
 }
 
-#[derive(Clone, Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize)]
+#[derive(Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize)]
 pub struct Identity {
     pub name: String,
     pub email: PrintableAsciiString, // Try to prevent homoglyph attacks in the address
@@ -339,6 +340,56 @@ impl From<PublicKey> for String {
             z85::encode(k.keypoint.compress()),
             z85::encode(buffer)
         )
+    }
+}
+
+impl FromStr for PublicKey {
+    type Err = ();
+    fn from_str(s: &str) -> Result<PublicKey, ()> {
+        use regex::Regex;
+        let re = match Regex::new(
+            r"\[([^\n]*) <([!-~]*)> ([0-9a-zA-Z.:+=^!\/*?&<>()\[\]{}@%$#-]{40}) ([0-9a-zA-Z.:+=^!\/*?&<>()\[\]{}@%$#-]{125})\]",
+        ) {
+            Ok(re) => re,
+            Err(_) => return Err(()),
+        };
+
+        let mut caps = re.captures_iter(s).map(|c| c.extract());
+        let (name, email, keypoint, attestation) = match caps.next() {
+            Some((overall, [name, email, keypoint, attestation])) => {
+                if overall.len() != s.len() {
+                    return Err(());
+                }
+                (name, email, keypoint, attestation)
+            }
+            _ => return Err(()),
+        };
+
+        let id = Identity {
+            name: name.to_string(),
+            email: PrintableAsciiString::from_str(email)?,
+        };
+
+        let keypoint = z85::decode(keypoint).map_err(|_| ())?;
+        let attestation = z85::decode(attestation).map_err(|_| ())?;
+
+        let keypoint = curve25519_dalek::ristretto::CompressedRistretto::from_slice(&keypoint)
+            .map_err(|_| ())?
+            .decompress()
+            .ok_or(())?;
+        let attestation = Signature::deserialize(&mut attestation.as_ref()).map_err(|_| ())?;
+
+        let res = PublicKey {
+            holder: id,
+            keypoint: RistrettoPoint(keypoint),
+            holder_attestation: attestation,
+        };
+
+        if !res.validate_attestation() {
+            return Err(());
+        }
+
+        Ok(res)
     }
 }
 
@@ -501,5 +552,24 @@ mod tests {
         signed.message = Vec::new();
         signed.message.extend_from_slice(b"SPARTACVSEST");
         assert!(!signed.verify());
+    }
+
+    #[test]
+    fn export_and_import_work() {
+        let my_email = PrintableAsciiString::from_bytes(b"spartacus@example.com").unwrap();
+        let my_name = "Spartacus";
+        let my_id = Identity::new(my_name, &my_email);
+        let my_key = PrivateKey::new(my_id.clone());
+        let export = String::from(my_key.public());
+        let import = PublicKey::from_str(&export);
+        let PublicKey {
+            ref holder,
+            ref keypoint,
+            ref holder_attestation,
+        } = import.unwrap();
+
+        assert!(holder == &my_key.holder);
+        assert!(keypoint == &my_key.public().keypoint);
+        assert!(holder_attestation == holder_attestation);
     }
 }

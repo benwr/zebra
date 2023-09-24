@@ -4209,6 +4209,7 @@ dependencies = [
  "curve25519-dalek 4.1.0",
  "printable_ascii",
  "rand 0.8.5",
+ "regex",
  "sha3",
  "z85",
  "zeroize",

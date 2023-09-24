@@ -23,9 +23,10 @@ impl PrintableAsciiString {
     pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
         for b in bytes.iter() {
             // Characters 31 and below are nonprintable
+            // Character 32 is SPC
             // Character 127 is DEL
             // Characters 128 and above are control characters
-            if *b < 32 || *b > 126 {
+            if *b < 33 || *b > 126 {
                 return None;
             }
         }
@@ -131,12 +132,13 @@ mod tests {
         assert!(PrintableAsciiString::from_bytes(&[b'\0']) == None);
         assert!(PrintableAsciiString::from_bytes(&[b'\x7f']) == None);
         assert!(PrintableAsciiString::from_bytes(&[b'\x1f']) == None);
+        assert!(PrintableAsciiString::from_bytes(&[b' ']) == None);
         assert!(
             PrintableAsciiString::from_bytes("Hi".as_bytes())
                 == Some(PrintableAsciiString(b"Hi".to_vec()))
         );
         assert!(
-            PrintableAsciiString::from_bytes(&[b' ']) == Some(PrintableAsciiString(b" ".to_vec()))
+            PrintableAsciiString::from_bytes(&[b'!']) == Some(PrintableAsciiString(b"!".to_vec()))
         );
     }
 }
