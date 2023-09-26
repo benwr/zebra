@@ -19,6 +19,7 @@ dioxus-desktop = "0.4.0"
 secmem-proc = "0.3"
 
 printable_ascii.workspace = true
+spartacus_crypto.workspace = true
 spartacus_storage.workspace = true
 
 [package.metadata.bundle]

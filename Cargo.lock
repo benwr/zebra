@@ -11,6 +11,7 @@ dependencies = [
  "dioxus-desktop",
  "printable_ascii",
  "secmem-proc",
+ "spartacus_crypto",
  "spartacus_storage",
 ]
 

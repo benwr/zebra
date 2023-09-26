@@ -1,13 +1,15 @@
 #![allow(non_snake_case)]
-
+use std::collections::{BTreeMap, BTreeSet};
 use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 
-use copypasta::{ClipboardContext, ClipboardProvider};
 use dioxus::prelude::*;
+
+use copypasta::{ClipboardContext, ClipboardProvider};
 
 use printable_ascii::PrintableAsciiString;
 use spartacus::about::About;
+use spartacus_crypto::PublicKey;
 use spartacus_storage::{default_db_path, Database};
 
 fn main() {
@@ -30,9 +32,9 @@ enum ActiveTab {
 
 struct NewPrivateName(String);
 struct NewPrivateEmail(PrintableAsciiString);
-struct SignListNameFilter(String);
-struct SignListEmailFilter(String);
-struct SignListFingerprintFilter(String);
+struct TextToSign(String);
+struct SelectedPrivateSigner(Option<PublicKey>);
+struct SelectedPublicSigners(BTreeSet<PublicKey>);
 
 fn App(cx: Scope) -> Element {
     use dioxus_desktop::tao::dpi::{LogicalSize, Size};
@@ -46,10 +48,22 @@ fn App(cx: Scope) -> Element {
     use_shared_state_provider(cx, || ActiveTab::MyKeys);
     use_shared_state_provider(cx, || NewPrivateName(String::new()));
     use_shared_state_provider(cx, || NewPrivateEmail(PrintableAsciiString::default()));
-    use_shared_state_provider(cx, || SignListNameFilter(String::new()));
-    use_shared_state_provider(cx, || SignListEmailFilter(String::new()));
-    use_shared_state_provider(cx, || SignListFingerprintFilter(String::new()));
-    use_shared_state_provider(cx, || Database::new(default_db_path()));
+    use_shared_state_provider(cx, || TextToSign(String::new()));
+    use_shared_state_provider(cx, || SelectedPublicSigners(BTreeSet::new()));
+
+    let db = Database::new(default_db_path());
+
+    use_shared_state_provider(cx, || {
+        SelectedPrivateSigner({
+            if let Ok(ref d) = db {
+                d.visible_contents.my_public_keys.iter().next().cloned()
+            } else {
+                None
+            }
+        })
+    });
+
+    use_shared_state_provider(cx, || db);
 
     cx.render(rsx! {
         section {
@@ -140,6 +154,45 @@ fn TabSelect(cx: Scope) -> Element {
     })
 }
 
+#[derive(PartialEq, Props)]
+struct DeleteButtonProps {
+    k: PublicKey,
+    private: bool,
+}
+
+fn DeleteButton(cx: Scope<DeleteButtonProps>) -> Element {
+    let dbresult = use_shared_state::<std::io::Result<Database>>(cx).unwrap();
+    let selected_private_signer = use_shared_state::<SelectedPrivateSigner>(cx).unwrap();
+    let selected_public_signers = use_shared_state::<SelectedPublicSigners>(cx).unwrap();
+    cx.render(rsx! {
+        button {
+            onclick: {
+                move |_| {
+                    match dbresult.write().deref_mut() {
+                        Ok(ref mut db) => {
+                            if cx.props.private {
+                                let _ = db.delete_private_key(&cx.props.k);
+                                let mut private_signer_write = selected_private_signer.write();
+                                let private_signer = private_signer_write.deref_mut();
+                                if private_signer.0 == Some(cx.props.k.clone()) {
+                                    *private_signer = SelectedPrivateSigner(db.visible_contents.my_public_keys.iter().next().cloned());
+                                }
+                            } else {
+                                let _ = db.delete_public_key(&cx.props.k);
+                                let mut public_signer_write = selected_public_signers.write();
+                                let public_signer = public_signer_write.deref_mut();
+                                public_signer.0.remove(&cx.props.k);
+                            }
+                        }
+                        Err(_e) => {}
+                    }
+                }
+            },
+            "X"
+        }
+    })
+}
+
 fn MyKeys(cx: Scope) -> Element {
     let dbresult = use_shared_state::<std::io::Result<Database>>(cx).unwrap();
     let dbread = dbresult.read();
@@ -199,7 +252,7 @@ fn MyKeys(cx: Scope) -> Element {
                 }
             }
             tbody {
-                for (i, k) in keys.into_iter().enumerate() {
+                for k in keys.into_iter() {
                     tr {
                         td {
                             class: "name",
@@ -212,9 +265,12 @@ fn MyKeys(cx: Scope) -> Element {
                         td {
                             class: "actions",
                             button {
-                                onclick: move |_| {
-                                    if let Ok(mut ctx) = ClipboardContext::new() {
-                                        let _ = ctx.set_contents(k.clone().into());
+                                onclick: {
+                                    let k_copy = k.clone();
+                                    move |_| {
+                                        if let Ok(mut ctx) = ClipboardContext::new() {
+                                            let _ = ctx.set_contents(k_copy.clone().into());
+                                        }
                                     }
                                 },
                                 "Copy public key"
@@ -226,16 +282,9 @@ fn MyKeys(cx: Scope) -> Element {
                         }
                         td {
                             class: "delete",
-                            button {
-                                onclick: move |_| {
-                                    match dbresult.write().deref_mut() {
-                                        Ok(ref mut db) => {
-                                            let _ = db.delete_private_key(i);
-                                        }
-                                        Err(_e) => {}
-                                    }
-                                },
-                                "X",
+                            DeleteButton {
+                                k: k.clone(),
+                                private: true
                             }
                         }
                     }
@@ -283,14 +332,22 @@ fn MyKeys(cx: Scope) -> Element {
 }
 
 fn OtherKeys(cx: Scope) -> Element {
+    let dbresult = use_shared_state::<std::io::Result<Database>>(cx).unwrap();
+    let dbread = dbresult.read();
+    let keys = match dbread.deref() {
+        Ok(ref db) => db.visible_contents.their_public_keys.clone(),
+        Err(ref e) => {
+            return cx.render(rsx! {
+                "Error reading database: {e}"
+            })
+        }
+    };
+
     cx.render(rsx! {
         table {
             class: "otherkeys",
             thead {
                 tr {
-                    th {
-                        "Fingerprint"
-                    }
                     th {
                         "Name"
                     }
@@ -298,108 +355,199 @@ fn OtherKeys(cx: Scope) -> Element {
                         "Email"
                     }
                     th {
+                        "Actions"
+                    }
+                    th {
                         "Verified"
                     }
                     th {
-                        "Actions"
+                        "Fingerprint"
+                    }
+                    th {
+                        "Delete"
                     }
                 }
             }
             tbody {
-                tr {
-                    td {
-                        class: "fingerprint",
-                        "48GRzYT9kxSN8cfM39^#"
-                    }
-                    td {
-                        class: "name",
-                        "Kurt Brown"
-                    }
-                    td {
-                        class: "email",
-                        "kurt.brown126@gmail.com"
-                    }
-                    td {
-                        class: "verified",
-                        input {
-                            "type": "date",
+                for k in keys.into_iter() {
+                    tr {
+                        td {
+                            class: "name",
+                            k.0.holder.name().clone(),
                         }
-                    }
-                    td {
-                        class: "actions",
-                        button {
-                            "Copy Public Key",
+                        td {
+                            class: "email",
+                            k.0.holder.email().as_str().to_string(),
                         }
-                        button {
-                            "Delete",
+                        td {
+                            class: "actions",
+                            button {
+                                onclick: {
+                                    let k_copy = k.clone();
+                                    move |_| {
+                                        if let Ok(mut ctx) = ClipboardContext::new() {
+                                            let _ = ctx.set_contents(k_copy.0.clone().into());
+                                        }
+                                    }
+                                },
+                                "Copy"
+                            }
                         }
-                        button {
-                            "Verify By Email"
+                        td {
+                            class: "verified",
                         }
-                    }
-                }
-                tr {
-                    td {
-                        class: "fingerprint",
-                        "Du&hpGhD@Ld6AVATQNSp"
-                    }
-                    td {
-                        class: "name",
-                        "Sam Bankman-Fried"
-                    }
-                    td {
-                        class: "email",
-                        "sbf@ftx.us"
-                    }
-                    td {
-                        class: "verified",
-                        input {
-                            "type": "date",
+                        td {
+                            class: "fingerprint",
+                            k.0.fingerprint()
                         }
-                    }
-                    td {
-                        class: "actions",
-                        button {
-                            "Copy Public Key",
-                        }
-                        button {
-                            "Delete",
-                        }
-                        button {
-                            "Verify By Email"
+                        td {
+                            class: "delete",
+                            DeleteButton {
+                                k: k.0.clone(),
+                                private: false,
+                            }
                         }
                     }
                 }
             }
         }
         button {
-            "Add Public Key"
-        }
-        button {
-            "Import Key List"
-        }
-        button {
-            "Delete Selected"
-        }
-        button {
-            "Export Selected"
+            onclick: move |_| {
+                if let Ok(ref mut db) = dbresult.write().deref_mut() {
+                    if let Ok(mut ctx) = ClipboardContext::new() {
+                        if let Ok(contents) = ctx.get_contents() {
+                            let mut to_import = vec![];
+                            for line in contents.split('\n') {
+                                if let Ok(key) = PublicKey::from_str(&line) {
+                                    to_import.push(key)
+                                } else {
+                                    return;
+                                }
+                            }
+                            let _ = db.add_public_keys(&to_import);
+                        }
+                    }
+                }
+            },
+            "Import from Clipboard"
         }
     })
 }
 
-fn Sign(cx: Scope) -> Element {
-    cx.render(rsx! {
-        "Text To Sign: "
-        textarea {}
-        br {}
-        "My Key: "
+fn PrivateSignerSelect(cx: Scope) -> Element {
+    let dbresult = use_shared_state::<std::io::Result<Database>>(cx).unwrap();
+    let dbread = dbresult.read();
+    let my_keys = match dbread.deref() {
+        Ok(ref db) => db
+            .visible_contents
+            .my_public_keys
+            .clone()
+            .into_iter()
+            .map(|k| {
+                (
+                    k.fingerprint(),
+                    k
+                )
+            })
+            .collect::<BTreeMap<_, _>>(),
+        Err(ref e) => {
+            return cx.render(rsx! {
+                "Error reading database: {e}"
+            })
+        }
+    };
+    let my_keys_clone = my_keys.clone();
+
+    let selected_private_signer = use_shared_state::<SelectedPrivateSigner>(cx).unwrap();
+    let k = selected_private_signer.read().deref().0.clone();
+    let selected_fingerprint = k.map(|k| k.fingerprint());
+
+    cx.render(rsx!{
         select {
-            option {
-                "Ben Weinstein-Raun <b@w-r.me> (\"jf^:GW)T=&^}}dg-$6VVm\")"
+            oninput: move |evt| {
+                let mut selected_signer = selected_private_signer.write();
+                let selected_private_signer = selected_signer.deref_mut();
+                if let Some(k) = my_keys_clone.get(&evt.value) {
+                    *selected_private_signer = SelectedPrivateSigner(Some(k.clone()));
+                }
+            },
+            for (fp, k) in my_keys {
+                option {
+                    value: "{fp}",
+                    selected: {
+                        selected_fingerprint.as_ref().map(|k| &fp == k).unwrap_or(false)
+                    },
+                    {
+                        format!("{} <{}> {}", k.holder.name(), k.holder.email(), fp)
+                    }
+                }
             }
         }
+    })
+}
+
+#[derive(PartialEq, Props)]
+struct PublicSignerSelectProps {
+    k: PublicKey
+}
+
+fn PublicSignerSelect(cx: Scope<PublicSignerSelectProps>) -> Element {
+    let selected_public_signers = use_shared_state::<SelectedPublicSigners>(cx).unwrap();
+    let current_signers = selected_public_signers.read();
+    cx.render(rsx!{
+            input {
+                oninput: move |e| {
+                    let mut signers = selected_public_signers.write();
+                    let signers = signers.deref_mut();
+                    if e.value == "true" {
+                        signers.0.insert(cx.props.k.clone().clone());
+                    } else {
+                        signers.0.remove(&cx.props.k);
+                    }
+                },
+                checked: "{current_signers.0.contains(&cx.props.k)}",
+                "type": "checkbox",
+            }
+    })
+}
+
+fn Sign(cx: Scope) -> Element {
+    let dbresult = use_shared_state::<std::io::Result<Database>>(cx).unwrap();
+    let dbread = dbresult.read();
+    let their_keys = match dbread.deref() {
+        Ok(ref db) => db.visible_contents.their_public_keys.clone(),
+        Err(ref e) => {
+            return cx.render(rsx! {
+                "Error reading database: {e}"
+            })
+        }
+    };
+
+    let text_to_sign = use_shared_state::<TextToSign>(cx).unwrap();
+
+    let text_to_sign_val = text_to_sign.read().deref().0.clone();
+
+    cx.render(rsx! {
+        b {
+            "Text To Sign: "
+        }
         br {}
-        "Other Keys: "
+        textarea {
+            value: "{text_to_sign_val}",
+            class: "sign_text"
+        }
+        br {}
+        br {}
+        b {
+            "My Key: "
+        }
+        PrivateSignerSelect {}
+        br {}
+        br {}
+        b {
+            "Other Keys: "
+        }
+        br {}
         table {
             class: "otherkeys",
             thead {
@@ -408,9 +556,6 @@ fn Sign(cx: Scope) -> Element {
                         "Include"
                     }
                     th {
-                        "Fingerprint"
-                    }
-                    th {
                         "Name"
                     }
                     th {
@@ -419,63 +564,39 @@ fn Sign(cx: Scope) -> Element {
                     th {
                         "Verified"
                     }
+                    th {
+                        "Fingerprint"
+                    }
                 }
             }
             tbody {
-                tr {
-                    td {
-                        input {
-                            "type": "checkbox",
+                for k in their_keys {
+                    tr {
+                        td {
+                            PublicSignerSelect {
+                                k: k.0.clone()
+                            }
                         }
-                    }
-                    td {
-                        class: "fingerprint",
-                        "48GRzYT9kxSN8cfM39^#"
-                    }
-                    td {
-                        class: "name",
-                        "Kurt Brown"
-                    }
-                    td {
-                        class: "email",
-                        "kurt.brown126@gmail.com"
-                    }
-                    td {
-                        class: "verified",
-                        input {
-                            "type": "date",
+                        td {
+                            class: "name",
+                            k.0.holder.name()
                         }
-                    }
-                }
-                tr {
-                    td {
-                        input {
-                            "type": "checkbox",
+                        td {
+                            class: "email",
+                            k.0.holder.email()
                         }
-                    }
-                    td {
-                        class: "fingerprint",
-                        "Du&hpGhD@Ld6AVATQNSp"
-                    }
-                    td {
-                        class: "name",
-                        "Sam Bankman-Fried"
-                    }
-                    td {
-                        class: "email",
-                        "sbf@ftx.us"
-                    }
-                    td {
-                        class: "verified",
-                        input {
-                            "type": "date",
+                        td {
+                        }
+                        td {
+                            class: "fingerprint",
+                            k.0.fingerprint()
                         }
                     }
                 }
             }
         }
         br {}
-        button { "Copy Signature" }
+        button { "Copy Signed Message to Clipboard" }
     })
 }
 

@@ -101,3 +101,9 @@ td.delete {
 p.copyright_info {
   font-size: 12px;
 }
+
+textarea.sign_text {
+  width: 95%;
+  height: 15em;
+  resize: none;
+}

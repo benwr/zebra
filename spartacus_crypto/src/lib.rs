@@ -9,8 +9,20 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 // We use newtype wrappers for RistrettoPoint and Scalar because we need to (de)serialize them
 // using Borsh. Their APIs stay private to this file, and we only duplicate as much as we use from
 // the dalek API.
-#[derive(Clone, PartialEq, Zeroize, ZeroizeOnDrop)]
+#[derive(Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
 pub struct RistrettoPoint(curve25519_dalek::ristretto::RistrettoPoint);
+
+impl Ord for RistrettoPoint {
+    fn cmp(&self, rhs: &Self) -> std::cmp::Ordering {
+        self.compress().cmp(&rhs.compress())
+    }
+}
+
+impl PartialOrd for RistrettoPoint {
+    fn partial_cmp(&self, rhs: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(rhs))
+    }
+}
 
 impl RistrettoPoint {
     fn compress(&self) -> [u8; 32] {
@@ -61,8 +73,20 @@ impl BorshDeserialize for RistrettoPoint {
     }
 }
 
-#[derive(Clone, PartialEq, Zeroize, ZeroizeOnDrop)]
+#[derive(Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
 pub struct Scalar(curve25519_dalek::Scalar);
+
+impl Ord for Scalar {
+    fn cmp(&self, rhs: &Self) -> std::cmp::Ordering {
+        self.0.as_bytes().cmp(&rhs.0.as_bytes())
+    }
+}
+
+impl PartialOrd for Scalar {
+    fn partial_cmp(&self, rhs: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(rhs))
+    }
+}
 
 impl Scalar {
     const ZERO: Scalar = Scalar(curve25519_dalek::Scalar::ZERO);
@@ -149,7 +173,7 @@ fn hash_message_and_ring<'a>(
     message_and_ring_hash
 }
 
-#[derive(Clone, PartialEq, Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize)]
 pub struct Signature {
     challenge: Scalar,
     ring_responses: Vec<(RistrettoPoint, Scalar)>,
@@ -251,7 +275,7 @@ impl Signature {
 /// looks like a familiar one actually *is* that address and not a different one. Fortunately, even
 /// email addresses in regions that primarily use alternative character sets very rarely use
 /// non-ASCII characters.
-#[derive(Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop, BorshSerialize)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Zeroize, ZeroizeOnDrop, BorshSerialize)]
 pub struct Identity {
     name: String,
     email: PrintableAsciiString,
@@ -307,7 +331,7 @@ impl BorshDeserialize for Identity {
 
 /// A complete public key, containing all the information required to share the key with others, to
 /// store it to disk, or to take part in a ring signature or verification.
-#[derive(Clone, Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize)]
 pub struct PublicKey {
     pub holder: Identity,
     pub keypoint: RistrettoPoint,
@@ -425,7 +449,7 @@ impl FromStr for PublicKey {
 
 /// A complete private key, containing all the information required to store it to disk, or to
 /// produce new ring signatures.
-#[derive(Clone, Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize)]
+#[derive(Clone, PartialEq, Eq, Ord, PartialOrd, Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize)]
 pub struct PrivateKey {
     pub holder: Identity,
     key: Scalar,

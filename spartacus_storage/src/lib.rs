@@ -1,3 +1,4 @@
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{File, OpenOptions};
 use std::path::{Path, PathBuf};
 
@@ -59,13 +60,13 @@ impl VerificationInfo {
     }
 }
 
-#[derive(Default, BorshDeserialize, BorshSerialize, Zeroize, ZeroizeOnDrop)]
+#[derive(Default, BorshDeserialize, BorshSerialize)]
 struct DatabaseContentsV0 {
-    private_keys: Vec<PrivateKey>,
-    public_keys: Vec<(PublicKey, VerificationInfo)>,
+    private_keys: BTreeMap<PublicKey, PrivateKey>,
+    public_keys: BTreeMap<PublicKey, VerificationInfo>,
 }
 
-#[derive(BorshDeserialize, BorshSerialize, Zeroize)]
+#[derive(BorshDeserialize, BorshSerialize)]
 #[borsh(use_discriminant = true)]
 #[repr(u8)]
 enum SpartacusDatabaseContents {
@@ -75,16 +76,16 @@ enum SpartacusDatabaseContents {
 impl Default for SpartacusDatabaseContents {
     fn default() -> Self {
         Self::V0(DatabaseContentsV0 {
-            private_keys: vec![],
-            public_keys: vec![],
+            private_keys: BTreeMap::new(),
+            public_keys: BTreeMap::new(),
         })
     }
 }
 
 #[derive(Default)]
 pub struct VisibleDatabaseContents {
-    pub my_public_keys: Vec<PublicKey>,
-    pub their_public_keys: Vec<(PublicKey, VerificationInfo)>,
+    pub my_public_keys: BTreeSet<PublicKey>,
+    pub their_public_keys: BTreeMap<PublicKey, VerificationInfo>,
 }
 
 impl DatabaseContentsV0 {
@@ -94,8 +95,8 @@ impl DatabaseContentsV0 {
             public_keys,
         } = self;
         VisibleDatabaseContents {
-            my_public_keys: private_keys.iter().map(|k| k.public()).collect(),
-            their_public_keys: public_keys.to_vec(),
+            my_public_keys: private_keys.into_iter().map(|k| k.0.clone()).collect(),
+            their_public_keys: public_keys.clone(),
         }
     }
 }
@@ -249,27 +250,34 @@ impl Database {
     pub fn sign(
         &self,
         message: &[u8],
-        my_key_index: usize,
-        other_key_indexes: &[usize],
+        my_key_index: &PublicKey,
+        other_keys: &[PublicKey],
     ) -> std::io::Result<SignedMessage> {
         let (contents, _) = Self::get_contents(&self.db_path)?;
-        let my_key = contents.private_keys[my_key_index].clone();
-        let mut other_keys = Vec::with_capacity(other_key_indexes.len() + 1);
-        for i in other_key_indexes {
-            other_keys.push(contents.public_keys[*i].0.clone())
-        }
+        let my_key = contents
+            .private_keys
+            .get(&my_key_index)
+            .ok_or(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "Requested nonexistant key",
+            ))?
+            .clone();
         Ok(SignedMessage::sign(message, &my_key, &other_keys))
     }
 
-    pub fn set_verified(&mut self, public_key_index: usize) -> std::io::Result<()> {
+    pub fn set_verified(&mut self, public_key: &PublicKey) -> std::io::Result<()> {
         let (mut contents, pw) = Self::get_contents(&self.db_path)?;
-        contents.public_keys[public_key_index].1 = VerificationInfo::now();
+        contents
+            .public_keys
+            .insert(public_key.clone(), VerificationInfo::now());
         self.write_contents(contents, pw)
     }
 
-    pub fn set_unverified(&mut self, public_key_index: usize) -> std::io::Result<()> {
+    pub fn set_unverified(&mut self, public_key: &PublicKey) -> std::io::Result<()> {
         let (mut contents, pw) = Self::get_contents(&self.db_path)?;
-        contents.public_keys[public_key_index].1 = VerificationInfo::unverified();
+        contents
+            .public_keys
+            .insert(public_key.clone(), VerificationInfo::unverified());
         self.write_contents(contents, pw)
     }
 
@@ -284,9 +292,9 @@ impl Database {
         self.write_contents(contents, pw)
     }
 
-    pub fn delete_public_key(&mut self, index: usize) -> std::io::Result<()> {
+    pub fn delete_public_key(&mut self, key: &PublicKey) -> std::io::Result<()> {
         let (mut contents, pw) = Self::get_contents(&self.db_path)?;
-        contents.public_keys.remove(index);
+        contents.public_keys.remove(key);
         self.write_contents(contents, pw)
     }
 
@@ -305,18 +313,25 @@ impl Database {
 
     pub fn import_private_key(&mut self, key: PrivateKey) -> std::io::Result<()> {
         let (mut contents, pw) = Self::get_contents(&self.db_path)?;
-        contents.private_keys.push(key);
+        contents.private_keys.insert(key.public(), key);
         self.write_contents(contents, pw)
     }
 
-    pub fn export_private_key(&mut self, index: usize) -> std::io::Result<PrivateKey> {
+    pub fn export_private_key(&mut self, public_key: &PublicKey) -> std::io::Result<PrivateKey> {
         let (contents, _) = Self::get_contents(&self.db_path)?;
-        Ok(contents.private_keys[index].clone())
+        Ok(contents
+            .private_keys
+            .get(public_key)
+            .ok_or(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "Asked to export key that does not exist",
+            ))?
+            .clone())
     }
 
-    pub fn delete_private_key(&mut self, index: usize) -> std::io::Result<()> {
+    pub fn delete_private_key(&mut self, public_key: &PublicKey) -> std::io::Result<()> {
         let (mut contents, pw) = Self::get_contents(&self.db_path)?;
-        contents.private_keys.remove(index);
+        contents.private_keys.remove(public_key);
         self.write_contents(contents, pw)
     }
 }
