@@ -249,7 +249,7 @@ impl Database {
 
     pub fn sign(
         &self,
-        message: &[u8],
+        message: &str,
         my_key_index: &PublicKey,
         other_keys: &[PublicKey],
     ) -> std::io::Result<SignedMessage> {

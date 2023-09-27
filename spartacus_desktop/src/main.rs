@@ -443,12 +443,7 @@ fn PrivateSignerSelect(cx: Scope) -> Element {
             .my_public_keys
             .clone()
             .into_iter()
-            .map(|k| {
-                (
-                    k.fingerprint(),
-                    k
-                )
-            })
+            .map(|k| (k.fingerprint(), k))
             .collect::<BTreeMap<_, _>>(),
         Err(ref e) => {
             return cx.render(rsx! {
@@ -462,7 +457,7 @@ fn PrivateSignerSelect(cx: Scope) -> Element {
     let k = selected_private_signer.read().deref().0.clone();
     let selected_fingerprint = k.map(|k| k.fingerprint());
 
-    cx.render(rsx!{
+    cx.render(rsx! {
         select {
             oninput: move |evt| {
                 let mut selected_signer = selected_private_signer.write();
@@ -488,13 +483,13 @@ fn PrivateSignerSelect(cx: Scope) -> Element {
 
 #[derive(PartialEq, Props)]
 struct PublicSignerSelectProps {
-    k: PublicKey
+    k: PublicKey,
 }
 
 fn PublicSignerSelect(cx: Scope<PublicSignerSelectProps>) -> Element {
     let selected_public_signers = use_shared_state::<SelectedPublicSigners>(cx).unwrap();
     let current_signers = selected_public_signers.read();
-    cx.render(rsx!{
+    cx.render(rsx! {
             input {
                 oninput: move |e| {
                     let mut signers = selected_public_signers.write();
@@ -524,7 +519,6 @@ fn Sign(cx: Scope) -> Element {
     };
 
     let text_to_sign = use_shared_state::<TextToSign>(cx).unwrap();
-
     let text_to_sign_val = text_to_sign.read().deref().0.clone();
 
     cx.render(rsx! {
@@ -534,6 +528,7 @@ fn Sign(cx: Scope) -> Element {
         br {}
         textarea {
             value: "{text_to_sign_val}",
+            oninput: move |evt| *text_to_sign.write() = TextToSign(evt.value.clone()),
             class: "sign_text"
         }
         br {}
@@ -596,7 +591,33 @@ fn Sign(cx: Scope) -> Element {
             }
         }
         br {}
-        button { "Copy Signed Message to Clipboard" }
+        SignAndCopy {}
+    })
+}
+
+fn SignAndCopy(cx: Scope) -> Element {
+    let dbresult = use_shared_state::<std::io::Result<Database>>(cx).unwrap();
+    let text_to_sign = use_shared_state::<TextToSign>(cx).unwrap();
+    let text_to_sign_val = text_to_sign.read().deref().0.clone();
+    let selected_public_signers = use_shared_state::<SelectedPublicSigners>(cx).unwrap();
+    let current_signers = selected_public_signers.read().0.clone().into_iter().collect::<Vec<_>>();
+    let selected_private_signer = use_shared_state::<SelectedPrivateSigner>(cx).unwrap();
+    let k = selected_private_signer.read().deref().0.clone();
+    cx.render(rsx!{
+        button {
+            onclick: move |_| {
+                if let Ok(ref mut db) = dbresult.write().deref_mut() {
+                    if let Ok(mut ctx) = ClipboardContext::new() {
+                        if let Some(k) = &k {
+                            if let Ok(signed_message) = db.sign(&text_to_sign_val, &k, &current_signers) {
+                                let _ = ctx.set_contents(String::from(&signed_message));
+                            }
+                        }
+                    }
+                }
+            },
+            "Copy Signed Message to Clipboard"
+        }
     })
 }
 

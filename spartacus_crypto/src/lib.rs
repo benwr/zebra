@@ -173,7 +173,9 @@ fn hash_message_and_ring<'a>(
     message_and_ring_hash
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize)]
+#[derive(
+    Clone, PartialEq, Eq, PartialOrd, Ord, Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize,
+)]
 pub struct Signature {
     challenge: Scalar,
     ring_responses: Vec<(RistrettoPoint, Scalar)>,
@@ -331,7 +333,9 @@ impl BorshDeserialize for Identity {
 
 /// A complete public key, containing all the information required to share the key with others, to
 /// store it to disk, or to take part in a ring signature or verification.
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize)]
+#[derive(
+    Clone, PartialEq, Eq, PartialOrd, Ord, Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize,
+)]
 pub struct PublicKey {
     pub holder: Identity,
     pub keypoint: RistrettoPoint,
@@ -449,7 +453,9 @@ impl FromStr for PublicKey {
 
 /// A complete private key, containing all the information required to store it to disk, or to
 /// produce new ring signatures.
-#[derive(Clone, PartialEq, Eq, Ord, PartialOrd, Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize)]
+#[derive(
+    Clone, PartialEq, Eq, Ord, PartialOrd, Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize,
+)]
 pub struct PrivateKey {
     pub holder: Identity,
     key: Scalar,
@@ -486,17 +492,17 @@ impl PrivateKey {
 
 /// A signed message. Contains enough information to verify that one of a given set of public keys
 /// signed the included message (and that those keys claim to correspond to the given identities).
-#[derive(Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize)]
+#[derive(PartialEq, Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize)]
 pub struct SignedMessage {
-    message: Vec<u8>,
+    message: String,
     challenge: Scalar,
     ring: Vec<(PublicKey, Scalar)>,
 }
 
 impl SignedMessage {
-    pub fn sign(message: &[u8], my_key: &PrivateKey, other_keys: &[PublicKey]) -> Self {
+    pub fn sign(message: &str, my_key: &PrivateKey, other_keys: &[PublicKey]) -> Self {
         let sig = Signature::sign(
-            message,
+            message.as_bytes(),
             my_key.key.clone(),
             &other_keys
                 .iter()
@@ -507,7 +513,7 @@ impl SignedMessage {
         let ring = make_ring(my_key.public(), other_keys, |k| k.keypoint.clone());
 
         SignedMessage {
-            message: message.to_vec(),
+            message: message.to_string(),
             challenge: sig.challenge.clone(),
             ring: sig
                 .ring_responses
@@ -528,7 +534,7 @@ impl SignedMessage {
         }
 
         // 2. Verify the signature itself
-        self.signature().verify(&self.message)
+        self.signature().verify(&self.message.as_bytes())
     }
 
     fn signature(&self) -> Signature {
@@ -540,6 +546,112 @@ impl SignedMessage {
                 .map(|(k, s)| (k.keypoint.clone(), s.clone()))
                 .collect(),
         }
+    }
+}
+
+const SIGNED_MESSAGE_FIRST_LINE: &'static str =
+    "The following message has been signed using Spartacus 1.0:";
+const SIGNED_MESSAGE_SECOND_LINE: &'static str = "\"\"\"";
+const SIGNED_MESSAGE_INFIX_FIRST_LINE: &'static str = "\"\"\"";
+const SIGNED_MESSAGE_INFIX_SECOND_LINE: &'static str = "";
+const SIGNED_MESSAGE_INFIX_THIRD_LINE: &'static str =
+    "It was signed by someone with a private key corresponding to one of these keys:";
+const SIGNED_MESSAGE_INFIX_FOURTH_LINE: &'static str = "";
+const SIGNED_MESSAGE_SUFFIX_FIRST_LINE: &'static str = "";
+const SIGNED_MESSAGE_SUFFIX_SECOND_LINE: &'static str = "To verify this signature, paste this entire message into the Spartacus app (starting with \"The following message\" and ending with this line).";
+
+impl From<&SignedMessage> for String {
+    fn from(m: &SignedMessage) -> String {
+        let mut parts = vec![
+            SIGNED_MESSAGE_FIRST_LINE.to_string(),
+            SIGNED_MESSAGE_SECOND_LINE.to_string(),
+        ];
+        parts.push(m.message.clone());
+
+        parts.push(SIGNED_MESSAGE_INFIX_FIRST_LINE.to_string());
+        parts.push(SIGNED_MESSAGE_INFIX_SECOND_LINE.to_string());
+        parts.push(SIGNED_MESSAGE_INFIX_THIRD_LINE.to_string());
+        parts.push(SIGNED_MESSAGE_INFIX_FOURTH_LINE.to_string());
+        for (k, s) in m.ring.iter() {
+            let mut scalar_bytes = vec![];
+            s.serialize(&mut scalar_bytes)
+                .expect("Failed to serialize scalar into unbounded buffer");
+            parts.push(format!(
+                "{} <{}> {}",
+                k.holder.name(),
+                k.holder.email(),
+                k.fingerprint()
+            ));
+        }
+        let mut signature_bytes = vec![];
+        (m.challenge.clone(), m.ring.clone())
+            .serialize(&mut signature_bytes)
+            .expect("Failed to serialize scalar into unbounded buffer");
+        parts.push("".to_string());
+        parts.push(z85::encode(&signature_bytes));
+        parts.push(SIGNED_MESSAGE_SUFFIX_FIRST_LINE.to_string());
+        parts.push(SIGNED_MESSAGE_SUFFIX_SECOND_LINE.to_string());
+        parts.join("\n")
+    }
+}
+
+impl FromStr for SignedMessage {
+    type Err = ();
+    /// IMPORTANT NOTE: Success of this method does *not* imply a valid signature, only a
+    /// syntactically correct one.
+    fn from_str(s: &str) -> Result<SignedMessage, ()> {
+        let lines = s.trim().split('\n').collect::<Vec<_>>();
+        if lines.len() < 12 {
+            return Err(());
+        }
+        if lines[0] != SIGNED_MESSAGE_FIRST_LINE || lines[1] != SIGNED_MESSAGE_SECOND_LINE {
+            return Err(());
+        }
+        if lines[lines.len() - 1] != SIGNED_MESSAGE_SUFFIX_SECOND_LINE
+            || lines[lines.len() - 2] != SIGNED_MESSAGE_SUFFIX_FIRST_LINE
+            || lines[lines.len() - 4] != ""
+        {
+            return Err(());
+        }
+
+        let signature_bytes = match z85::decode(lines[lines.len() - 3]) {
+            Ok(val) => val,
+            Err(_) => return Err(()),
+        };
+
+        let (challenge, ring) = match <(Scalar, Vec<(PublicKey, Scalar)>)>::deserialize(
+            &mut signature_bytes.as_slice(),
+        ) {
+            Ok(x) => x,
+            Err(_) => return Err(()),
+        };
+
+        for (i, (signer, _)) in ring.iter().rev().enumerate() {
+            if lines[lines.len() - 5 - i]
+                != format!(
+                    "{} <{}> {}",
+                    signer.holder.name(),
+                    signer.holder.email(),
+                    signer.fingerprint()
+                )
+            {
+                return Err(());
+            }
+        }
+
+        if lines[lines.len() - 5 - ring.len()] != SIGNED_MESSAGE_INFIX_FOURTH_LINE
+            || lines[lines.len() - 5 - ring.len() - 1] != SIGNED_MESSAGE_INFIX_THIRD_LINE
+            || lines[lines.len() - 5 - ring.len() - 2] != SIGNED_MESSAGE_INFIX_SECOND_LINE
+            || lines[lines.len() - 5 - ring.len() - 3] != SIGNED_MESSAGE_INFIX_FIRST_LINE
+        {
+            return Err(());
+        }
+
+        Ok(SignedMessage {
+            message: lines[2..lines.len() - 5 - ring.len() - 3].join("\n"),
+            challenge,
+            ring,
+        })
     }
 }
 
@@ -588,7 +700,7 @@ mod tests {
 
     #[test]
     fn full_signatures_work() {
-        let message = b"SPARTACVSSVM";
+        let message = "SPARTACVSSVM";
         let my_email = PrintableAsciiString::from_bytes(b"spartacus@example.com").unwrap();
         let my_name = "Spartacus";
         let my_id = Identity::new(my_name, &my_email).unwrap();
@@ -603,8 +715,8 @@ mod tests {
         let mut signed = SignedMessage::sign(message, &my_key, &[other_public]);
         assert!(signed.verify());
 
-        signed.message = Vec::new();
-        signed.message.extend_from_slice(b"SPARTACVSEST");
+        signed.message = String::new();
+        signed.message = signed.message.clone() + "SPARTACVSEST";
         assert!(!signed.verify());
     }
 
@@ -625,5 +737,29 @@ mod tests {
         assert!(holder == &my_key.holder);
         assert!(keypoint == &my_key.public().keypoint);
         assert!(holder_attestation == holder_attestation);
+    }
+
+    #[test]
+    fn serialization_of_signed_message() {
+        let message = "SPARTACVSSVM";
+        let my_email = PrintableAsciiString::from_bytes(b"spartacus@example.com").unwrap();
+        let my_name = "Spartacus";
+        let my_id = Identity::new(my_name, &my_email).unwrap();
+        let my_key = PrivateKey::new(my_id.clone());
+
+        let other_email = PrintableAsciiString::from_bytes(b"notspartacus@example.com").unwrap();
+        let other_name = "Gaius";
+        let other_id = Identity::new(other_name, &other_email).unwrap();
+        let other_key = PrivateKey::new(other_id.clone());
+        let other_public = other_key.public();
+
+        let signed = SignedMessage::sign(message, &my_key, &[other_public]);
+        let signed_text = String::from(&signed);
+        eprintln!("{}", signed_text);
+        eprintln!(
+            "{}",
+            String::from(&SignedMessage::from_str(&signed_text).unwrap())
+        );
+        assert!(SignedMessage::from_str(&signed_text) == Ok(signed));
     }
 }
