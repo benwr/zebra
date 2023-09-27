@@ -360,9 +360,6 @@ fn OtherKeys(cx: Scope) -> Element {
                         "Actions"
                     }
                     th {
-                        "Verified"
-                    }
-                    th {
                         "Fingerprint"
                     }
                     th {
@@ -394,9 +391,6 @@ fn OtherKeys(cx: Scope) -> Element {
                                 },
                                 "Copy"
                             }
-                        }
-                        td {
-                            class: "verified",
                         }
                         td {
                             class: "fingerprint",
@@ -559,9 +553,6 @@ fn Sign(cx: Scope) -> Element {
                         "Email"
                     }
                     th {
-                        "Verified"
-                    }
-                    th {
                         "Fingerprint"
                     }
                 }
@@ -581,8 +572,6 @@ fn Sign(cx: Scope) -> Element {
                         td {
                             class: "email",
                             k.0.holder.email()
-                        }
-                        td {
                         }
                         td {
                             class: "fingerprint",
@@ -677,12 +666,6 @@ fn VerificationResults(cx: Scope<VerificationResultsProps>) -> Element {
                     th {
                         "Fingerprint"
                     }
-                    th {
-                        "Recognized Key"
-                    }
-                    th {
-                        "Verified Key"
-                    }
                 }
                 tbody {
                     for (pubkey, _) in cx.props.signed_message.ring.iter() {
@@ -695,16 +678,6 @@ fn VerificationResults(cx: Scope<VerificationResultsProps>) -> Element {
                             }
                             td {
                                 "{pubkey.fingerprint()}"
-                            }
-                            td {
-                                input {
-                                    "type": "checkbox"
-                                }
-                            }
-                            td {
-                                input {
-                                    "type": "checkbox"
-                                }
                             }
                         }
                     }
@@ -719,7 +692,7 @@ fn VerificationResults(cx: Scope<VerificationResultsProps>) -> Element {
             br {}
             "{cx.props.signed_message.message}"
             br {}
-            "failed to verify."
+            "Failed to verify."
         })
     }
 }
