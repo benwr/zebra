@@ -9,7 +9,7 @@ use copypasta::{ClipboardContext, ClipboardProvider};
 
 use printable_ascii::PrintableAsciiString;
 use spartacus::about::About;
-use spartacus_crypto::PublicKey;
+use spartacus_crypto::{PublicKey, SignedMessage};
 use spartacus_storage::{default_db_path, Database};
 
 fn main() {
@@ -33,6 +33,7 @@ enum ActiveTab {
 struct NewPrivateName(String);
 struct NewPrivateEmail(PrintableAsciiString);
 struct TextToSign(String);
+struct MessageToVerify(Option<SignedMessage>);
 struct SelectedPrivateSigner(Option<PublicKey>);
 struct SelectedPublicSigners(BTreeSet<PublicKey>);
 
@@ -49,6 +50,7 @@ fn App(cx: Scope) -> Element {
     use_shared_state_provider(cx, || NewPrivateName(String::new()));
     use_shared_state_provider(cx, || NewPrivateEmail(PrintableAsciiString::default()));
     use_shared_state_provider(cx, || TextToSign(String::new()));
+    use_shared_state_provider(cx, || MessageToVerify(None));
     use_shared_state_provider(cx, || SelectedPublicSigners(BTreeSet::new()));
 
     let db = Database::new(default_db_path());
@@ -621,9 +623,127 @@ fn SignAndCopy(cx: Scope) -> Element {
     })
 }
 
-fn Verify(cx: Scope) -> Element {
-    cx.render(rsx! {
-        div {
+fn PasteAndVerify(cx: Scope) -> Element {
+    let message_to_verify = use_shared_state::<MessageToVerify>(cx).unwrap();
+    cx.render(rsx!{
+        button {
+            onclick: move |_| {
+                let mut message_to_verify = message_to_verify.write();
+                if let Ok(mut ctx) = ClipboardContext::new() {
+                    if let Ok(message) = ctx.get_contents() {
+                        if let Ok(signed_message) = SignedMessage::from_str(&message) {
+                            *message_to_verify = MessageToVerify(Some(signed_message));
+                        } else {
+                            *message_to_verify = MessageToVerify(None);
+                        }
+                    } else {
+                        *message_to_verify = MessageToVerify(None);
+                    }
+                } else {
+                    *message_to_verify = MessageToVerify(None);
+                }
+            },
+            "Verify Message From Clipboard"
         }
     })
+}
+
+#[derive(PartialEq, Props)]
+struct VerificationResultsProps {
+    signed_message: SignedMessage
+}
+
+fn VerificationResults(cx: Scope<VerificationResultsProps>) -> Element {
+    if cx.props.signed_message.verify() {
+        cx.render(rsx!{
+            b {
+                "Message:"
+            }
+            br {}
+            "{cx.props.signed_message.message}"
+            br {}
+            br {}
+            b {
+                "This message was signed by someone with the private key associated with one of these identities:"
+            }
+            table {
+                thead {
+                    th {
+                        "Name"
+                    }
+                    th {
+                        "Email"
+                    }
+                    th {
+                        "Fingerprint"
+                    }
+                    th {
+                        "Recognized Key"
+                    }
+                    th {
+                        "Verified Key"
+                    }
+                }
+                tbody {
+                    for (pubkey, _) in cx.props.signed_message.ring.iter() {
+                        tr {
+                            td {
+                                "{pubkey.holder.name()}"
+                            }
+                            td {
+                                "{pubkey.holder.email()}"
+                            }
+                            td {
+                                "{pubkey.fingerprint()}"
+                            }
+                            td {
+                                input {
+                                    "type": "checkbox"
+                                }
+                            }
+                            td {
+                                input {
+                                    "type": "checkbox"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        })
+    } else {
+        cx.render(rsx!{
+            b {
+                "Message:"
+            }
+            br {}
+            "{cx.props.signed_message.message}"
+            br {}
+            "failed to verify."
+        })
+    }
+}
+
+fn Verify(cx: Scope) -> Element {
+    let message_to_verify = use_shared_state::<MessageToVerify>(cx).unwrap();
+    let message_to_verify_val = message_to_verify.read().deref().0.clone();
+
+    if let Some(signed_message) = message_to_verify_val {
+        cx.render(rsx! {
+            div {
+                PasteAndVerify {}
+                br {}
+                br {}
+                VerificationResults {
+                    signed_message: signed_message
+                }
+            }
+        })
+    } else {
+        cx.render(rsx! {
+            div {
+                PasteAndVerify {}
+            }
+        })
+    }
 }

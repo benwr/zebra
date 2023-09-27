@@ -492,11 +492,11 @@ impl PrivateKey {
 
 /// A signed message. Contains enough information to verify that one of a given set of public keys
 /// signed the included message (and that those keys claim to correspond to the given identities).
-#[derive(PartialEq, Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize)]
+#[derive(Clone, PartialEq, Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize)]
 pub struct SignedMessage {
-    message: String,
+    pub message: String,
     challenge: Scalar,
-    ring: Vec<(PublicKey, Scalar)>,
+    pub ring: Vec<(PublicKey, Scalar)>,
 }
 
 impl SignedMessage {
