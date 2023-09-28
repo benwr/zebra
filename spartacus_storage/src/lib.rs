@@ -101,6 +101,7 @@ impl DatabaseContentsV0 {
     }
 }
 
+#[cfg(all(not(target_os = "android"), not(feature = "debug")))]
 fn get_username() -> String {
     let mut result = whoami::username();
     if result.is_empty() {
@@ -109,7 +110,7 @@ fn get_username() -> String {
     result
 }
 
-#[cfg(not(target_os = "android"))]
+#[cfg(all(not(target_os = "android"), not(feature = "debug")))]
 fn get_or_create_db_key() -> std::io::Result<SecretString> {
     let entry = match keyring::Entry::new(SERVICE_NAME, &get_username()) {
         Ok(entry) => entry,
@@ -141,7 +142,7 @@ fn get_or_create_db_key() -> std::io::Result<SecretString> {
 }
 
 // NOTE: If keyring ever supports the android keystore, we should (carefully!) update this.
-#[cfg(target_os = "android")]
+#[cfg(any(target_os = "android", feature = "debug"))]
 fn get_or_create_db_key() -> std::io::Result<SecretString> {
     Ok(SecretString::new("".to_string()))
 }
@@ -344,8 +345,14 @@ fn app_dir() -> PathBuf {
     }
 }
 
+#[cfg(not(feature = "debug"))]
 pub fn default_db_path() -> PathBuf {
     app_dir().join("spartacus_db.age")
+}
+
+#[cfg(feature = "debug")]
+pub fn default_db_path() -> PathBuf {
+    app_dir().join("spartacus_debug_db.age")
 }
 
 fn lockfile_path<P: AsRef<Path>>(p: &P) -> PathBuf {

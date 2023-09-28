@@ -3,6 +3,10 @@ name = "spartacus_storage"
 version = "0.0.0"
 edition = "2021"
 
+[features]
+default = []
+debug = []
+
 [dependencies]
 spartacus_crypto.workspace = true
 printable_ascii.workspace = true

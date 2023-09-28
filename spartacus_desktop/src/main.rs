@@ -13,6 +13,7 @@ use spartacus_crypto::{PublicKey, SignedMessage};
 use spartacus_storage::{default_db_path, Database};
 
 fn main() {
+    #[cfg(not(feature = "debug"))]
     // This is overkill, but also cheap.
     if let Err(e) = secmem_proc::harden_process() {
         eprintln!("Error: Could not harden process; exiting. {e}");
@@ -204,6 +205,7 @@ fn MyKeys(cx: Scope) -> Element {
     let new_private_email = use_shared_state::<NewPrivateEmail>(cx).unwrap();
     let new_private_email_val = new_private_email.read().deref().0.clone();
     let new_private_email_copy = new_private_email.read().deref().0.clone();
+    let selected_private_signer = use_shared_state::<SelectedPrivateSigner>(cx).unwrap();
     let keys = match dbread.deref() {
         Ok(ref db) => db.visible_contents.my_public_keys.clone(),
         Err(ref e) => {
@@ -224,6 +226,11 @@ fn MyKeys(cx: Scope) -> Element {
                             if let Ok(()) = db.new_private_key(&new_private_name_copy, &email) {
                                 *new_private_name.write() = NewPrivateName("".to_string());
                                 *new_private_email.write() = NewPrivateEmail(PrintableAsciiString::default());
+                                let mut selected_private_signer_write = selected_private_signer.write();
+                                if selected_private_signer_write.deref().0.is_none() {
+                                    *selected_private_signer_write = SelectedPrivateSigner(db.visible_contents.my_public_keys.iter().next().cloned());
+
+                                }
                             }
                         }
                     }
@@ -591,7 +598,12 @@ fn SignAndCopy(cx: Scope) -> Element {
     let text_to_sign = use_shared_state::<TextToSign>(cx).unwrap();
     let text_to_sign_val = text_to_sign.read().deref().0.clone();
     let selected_public_signers = use_shared_state::<SelectedPublicSigners>(cx).unwrap();
-    let current_signers = selected_public_signers.read().0.clone().into_iter().collect::<Vec<_>>();
+    let current_signers = selected_public_signers
+        .read()
+        .0
+        .clone()
+        .into_iter()
+        .collect::<Vec<_>>();
     let selected_private_signer = use_shared_state::<SelectedPrivateSigner>(cx).unwrap();
     let k = selected_private_signer.read().deref().0.clone();
     cx.render(rsx!{
@@ -614,7 +626,7 @@ fn SignAndCopy(cx: Scope) -> Element {
 
 fn PasteAndVerify(cx: Scope) -> Element {
     let message_to_verify = use_shared_state::<MessageToVerify>(cx).unwrap();
-    cx.render(rsx!{
+    cx.render(rsx! {
         button {
             onclick: move |_| {
                 let mut message_to_verify = message_to_verify.write();
@@ -639,7 +651,7 @@ fn PasteAndVerify(cx: Scope) -> Element {
 
 #[derive(PartialEq, Props)]
 struct VerificationResultsProps {
-    signed_message: SignedMessage
+    signed_message: SignedMessage,
 }
 
 fn VerificationResults(cx: Scope<VerificationResultsProps>) -> Element {
@@ -685,7 +697,7 @@ fn VerificationResults(cx: Scope<VerificationResultsProps>) -> Element {
             }
         })
     } else {
-        cx.render(rsx!{
+        cx.render(rsx! {
             b {
                 "Message:"
             }
