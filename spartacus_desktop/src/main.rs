@@ -4,6 +4,10 @@ use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 
 use dioxus::prelude::*;
+use dioxus_free_icons::{
+    icons::fa_regular_icons::{FaCopy, FaTrashCan},
+    Icon,
+};
 
 use copypasta::{ClipboardContext, ClipboardProvider};
 
@@ -39,13 +43,8 @@ struct SelectedPrivateSigner(Option<PublicKey>);
 struct SelectedPublicSigners(BTreeSet<PublicKey>);
 
 fn App(cx: Scope) -> Element {
-    use dioxus_desktop::tao::dpi::{LogicalSize, Size};
     let desktop = dioxus_desktop::use_window(cx);
     desktop.set_title("Spartacus");
-    desktop.set_min_inner_size(Some(Size::Logical(LogicalSize {
-        width: 640.0,
-        height: 256.0,
-    })));
 
     use_shared_state_provider(cx, || ActiveTab::MyKeys);
     use_shared_state_provider(cx, || NewPrivateName(String::new()));
@@ -168,9 +167,12 @@ fn DeleteButton(cx: Scope<DeleteButtonProps>) -> Element {
     let selected_private_signer = use_shared_state::<SelectedPrivateSigner>(cx).unwrap();
     let selected_public_signers = use_shared_state::<SelectedPublicSigners>(cx).unwrap();
     cx.render(rsx! {
-        button {
+        a {
+            class: "delete_button",
+            href: "",
             onclick: {
-                move |_| {
+                move |e| {
+                    e.stop_propagation();
                     match dbresult.write().deref_mut() {
                         Ok(ref mut db) => {
                             if cx.props.private {
@@ -191,7 +193,12 @@ fn DeleteButton(cx: Scope<DeleteButtonProps>) -> Element {
                     }
                 }
             },
-            "X"
+            Icon {
+                width: 15,
+                height: 15,
+                fill: "#cc3333",
+                icon: FaTrashCan,
+            }
         }
     })
 }
@@ -239,100 +246,115 @@ fn MyKeys(cx: Scope) -> Element {
             },
             id: new_key_form_id
         }
-        table {
-            class: "mykeys",
-            thead {
-                tr {
-                    th {
-                        "Name"
-                    }
-                    th {
-                        "Email"
-                    }
-                    th {
-                        "Actions"
-                    }
-                    th {
-                        "Fingerprint"
-                    }
-                    th {
-                        "Delete"
-                    }
-                }
-            }
-            tbody {
-                for k in keys.into_iter() {
+        div {
+            class: "toolbar",
+            "Hi there!"
+        }
+        div {
+            class: "data",
+            table {
+                class: "mykeys",
+                thead {
                     tr {
-                        td {
-                            class: "name",
-                            k.holder.name().clone(),
+                        th {
+                            "Name"
                         }
-                        td {
-                            class: "email",
-                            k.holder.email().as_str().to_string(),
+                        th {
+                            "Email"
                         }
-                        td {
-                            class: "actions",
-                            button {
-                                onclick: {
-                                    let k_copy = k.clone();
-                                    move |_| {
-                                        if let Ok(mut ctx) = ClipboardContext::new() {
-                                            let _ = ctx.set_contents(k_copy.clone().into());
-                                        }
-                                    }
-                                },
-                                "Copy public key"
-                            }
+                        th {
+                            "Actions"
                         }
-                        td {
-                            class: "fingerprint",
-                            k.fingerprint()
+                        th {
+                            "Fingerprint"
                         }
-                        td {
-                            class: "delete",
-                            DeleteButton {
-                                k: k.clone(),
-                                private: true
-                            }
+                        th {
+                            "Delete"
                         }
                     }
                 }
-                tr {
-                    td {
-                        class: "name",
-                        input {
-                            class: "new_key_name_input",
-                            value: "{new_private_name_val}",
-                            form: new_key_form_id,
-                            oninput: move |evt| *new_private_name.write() = NewPrivateName(evt.value.clone())
-                        }
-                    }
-                    td {
-                        class: "email",
-                        input {
-                            class: "new_key_email_input",
-                            value: "{new_private_email_val}",
-                            form: new_key_form_id,
-                            oninput: move |evt| {
-                                if let Ok(new) = PrintableAsciiString::from_str(&evt.value) {
-                                    *new_private_email.write() = NewPrivateEmail(new)
-                                } else {
-                                    *new_private_email.write() = NewPrivateEmail(new_private_email_val.clone())
+                tbody {
+                    for k in keys.into_iter() {
+                        tr {
+                            td {
+                                class: "name",
+                                k.holder.name().clone(),
+                            }
+                            td {
+                                class: "email",
+                                k.holder.email().as_str().to_string(),
+                            }
+                            td {
+                                class: "actions",
+                                a {
+                                    href: "",
+                                    title: "Copy Public Key",
+                                    onclick: {
+                                        let k_copy = k.clone();
+                                        move |e| {
+                                            e.stop_propagation();
+                                            if let Ok(mut ctx) = ClipboardContext::new() {
+                                                let _ = ctx.set_contents(k_copy.clone().into());
+                                            }
+                                        }
+                                    },
+                                    Icon {
+                                        width: 15,
+                                        height: 15,
+                                        fill: "black",
+                                        icon: FaCopy,
+                                    }
+                                }
+                            }
+                            td {
+                                class: "fingerprint",
+                                k.fingerprint()
+                            }
+                            td {
+                                class: "delete",
+                                DeleteButton {
+                                    k: k.clone(),
+                                    private: true
                                 }
                             }
                         }
                     }
-                    td {
-                        class: "actions",
-                        input {
-                            "type": "submit",
-                            form: new_key_form_id,
-                            value: "Create New Keypair"
+                    tr {
+                        td {
+                            class: "name",
+                            input {
+                                class: "new_key_name_input",
+                                value: "{new_private_name_val}",
+                                form: new_key_form_id,
+                                oninput: move |evt| *new_private_name.write() = NewPrivateName(evt.value.clone())
+                            }
                         }
-                    }
-                    td {
-                        class: "fingerprint",
+                        td {
+                            class: "email",
+                            input {
+                                class: "new_key_email_input",
+                                value: "{new_private_email_val}",
+                                form: new_key_form_id,
+                                oninput: move |evt| {
+                                    if let Ok(new) = PrintableAsciiString::from_str(&evt.value) {
+                                        *new_private_email.write() = NewPrivateEmail(new)
+                                    } else {
+                                        *new_private_email.write() = NewPrivateEmail(new_private_email_val.clone())
+                                    }
+                                }
+                            }
+                        }
+                        td {
+                            class: "actions",
+                            input {
+                                "type": "submit",
+                                form: new_key_form_id,
+                                value: "Create New Keypair"
+                            }
+                        }
+                        td {
+                            class: "fingerprint",
+                        }
                     }
                 }
             }
@@ -353,6 +375,12 @@ fn OtherKeys(cx: Scope) -> Element {
     };
 
     cx.render(rsx! {
+        div {
+            class: "toolbar",
+            "Hi there!"
+        },
+        div {
+            class: "data",
         table {
             class: "otherkeys",
             thead {
@@ -387,16 +415,24 @@ fn OtherKeys(cx: Scope) -> Element {
                         }
                         td {
                             class: "actions",
-                            button {
+                            a {
+                                href: "",
+                                title: "Copy Public Key",
                                 onclick: {
                                     let k_copy = k.clone();
-                                    move |_| {
+                                    move |e| {
+                                        e.stop_propagation();
                                         if let Ok(mut ctx) = ClipboardContext::new() {
                                             let _ = ctx.set_contents(k_copy.0.clone().into());
                                         }
                                     }
                                 },
-                                "Copy"
+                                Icon {
+                                    width: 15,
+                                    height: 15,
+                                    fill: "black",
+                                    icon: FaCopy,
+                                }
                             }
                         }
                         td {
@@ -433,6 +469,7 @@ fn OtherKeys(cx: Scope) -> Element {
                 }
             },
             "Import from Clipboard"
+        }
         }
     })
 }
@@ -525,6 +562,12 @@ fn Sign(cx: Scope) -> Element {
     let text_to_sign_val = text_to_sign.read().deref().0.clone();
 
     cx.render(rsx! {
+        div {
+            class: "toolbar",
+            "Hi there!"
+        },
+        div {
+            class: "data",
         b {
             "Text To Sign: "
         }
@@ -590,6 +633,7 @@ fn Sign(cx: Scope) -> Element {
         }
         br {}
         SignAndCopy {}
+        }
     })
 }
 
@@ -716,18 +760,32 @@ fn Verify(cx: Scope) -> Element {
     if let Some(signed_message) = message_to_verify_val {
         cx.render(rsx! {
             div {
-                PasteAndVerify {}
-                br {}
-                br {}
-                VerificationResults {
-                    signed_message: signed_message
+                class: "toolbar",
+                "Hi there!"
+            },
+            div {
+                class: "data",
+                div {
+                    PasteAndVerify {}
+                    br {}
+                    br {}
+                    VerificationResults {
+                        signed_message: signed_message
+                    }
                 }
             }
         })
     } else {
         cx.render(rsx! {
             div {
-                PasteAndVerify {}
+                class: "toolbar",
+                "Hi there!"
+            },
+            div {
+                class: "data",
+                div {
+                    PasteAndVerify {}
+                }
             }
         })
     }

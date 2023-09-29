@@ -501,6 +501,15 @@ pub struct SignedMessage {
 
 impl SignedMessage {
     pub fn sign(message: &str, my_key: &PrivateKey, other_keys: &[PublicKey]) -> Self {
+        let my_public_key = my_key.public();
+        // If someone selected both their public and private key, we don't want to give them away
+        // by including both in the ring.
+        let other_keys = other_keys
+            .iter()
+            .cloned()
+            .filter(|k| k != &my_public_key)
+            .collect::<Vec<_>>();
+
         let sig = Signature::sign(
             message.as_bytes(),
             my_key.key.clone(),
@@ -510,7 +519,7 @@ impl SignedMessage {
                 .collect::<Vec<_>>(),
         );
 
-        let ring = make_ring(my_key.public(), other_keys, |k| k.keypoint.clone());
+        let ring = make_ring(my_public_key, &other_keys, |k| k.keypoint.clone());
 
         SignedMessage {
             message: message.to_string(),
