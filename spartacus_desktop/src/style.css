@@ -42,9 +42,17 @@ nav.tab_select div.tab_choice {
   text-align: center;
 }
 
+nav.tab_select div.tab_choice.danger_tab {
+  color: #c00;
+}
+
 nav.tab_select div.tab_choice:hover {
   cursor: pointer;
   color: #000;
+}
+
+nav.tab_select div.tab_choice.danger_tab:hover {
+  color: #f00;
 }
 
 nav.tab_select div.active_tab {
@@ -52,6 +60,10 @@ nav.tab_select div.active_tab {
   color: #000;
   border-bottom: 1px solid var(--main-bg-color);
   background: linear-gradient(#f6f6f6, var(--main-bg-color));
+}
+
+nav.tab_select div.active_tab.danger_tab {
+  color: #f00;
 }
 
 nav.tab_select div.tab_choice {
@@ -134,4 +146,12 @@ textarea.sign_text {
   width: 95%;
   height: 15em;
   resize: none;
+}
+
+.action_button {
+  margin: 0.5em;
+}
+
+.danger_tab a {
+  color: #ff0000;
 }

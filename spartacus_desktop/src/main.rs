@@ -33,6 +33,7 @@ enum ActiveTab {
     Sign,
     Verify,
     About,
+    Danger,
 }
 
 struct NewPrivateName(String);
@@ -81,6 +82,7 @@ fn App(cx: Scope) -> Element {
                         ActiveTab::Sign => rsx! { Sign {} },
                         ActiveTab::Verify => rsx! { Verify {} },
                         ActiveTab::About => rsx! { About {} },
+                        ActiveTab::Danger => rsx! { Danger {} },
                     }
                 }
             }
@@ -152,6 +154,17 @@ fn TabSelect(cx: Scope) -> Element {
                 },
                 "About"
             }
+            div {
+                onclick: move |_| {*use_shared_state::<ActiveTab>(cx).unwrap().write() = ActiveTab::Danger},
+                class: {
+                    if let ActiveTab::Danger = active_tab {
+                        "tab_choice danger_tab active_tab"
+                    } else {
+                        "tab_choice danger_tab inactive_tab"
+                    }
+                },
+                "Danger"
+            }
         }
     })
 }
@@ -168,7 +181,7 @@ fn DeleteButton(cx: Scope<DeleteButtonProps>) -> Element {
     let selected_public_signers = use_shared_state::<SelectedPublicSigners>(cx).unwrap();
     cx.render(rsx! {
         a {
-            class: "delete_button",
+            class: "delete_button action_button",
             href: "",
             onclick: {
                 move |e| {
@@ -198,6 +211,73 @@ fn DeleteButton(cx: Scope<DeleteButtonProps>) -> Element {
                 height: 15,
                 fill: "#cc3333",
                 icon: FaTrashCan,
+            }
+        }
+    })
+}
+
+fn Danger(cx: Scope) -> Element {
+    let dbresult = use_shared_state::<std::io::Result<Database>>(cx).unwrap();
+    let dbread = dbresult.read();
+    let keys = match dbread.deref() {
+        Ok(ref db) => db.visible_contents.my_public_keys.clone(),
+        Err(ref e) => {
+            return cx.render(rsx! {
+                "Error reading database: {e}"
+            })
+        }
+    };
+
+    cx.render(rsx! {
+        div {
+            class: "toolbar",
+            "WARNING: The actions on this tab are irreversible!"
+        }
+        div {
+            class: "data",
+            table {
+                class: "mykeys",
+                thead {
+                    tr {
+                        th {
+                            "Name"
+                        }
+                        th {
+                            "Email"
+                        }
+                        th {
+                            "Fingerprint"
+                        }
+                        th {
+                            "Actions"
+                        }
+                    }
+                }
+                tbody {
+                    for k in keys.into_iter() {
+                        tr {
+                            td {
+                                class: "name",
+                                k.holder.name().clone(),
+                            }
+                            td {
+                                class: "email",
+                                k.holder.email().as_str().to_string(),
+                            }
+                            td {
+                                class: "fingerprint",
+                                k.fingerprint()
+                            }
+                            td {
+                                class: "delete",
+                                DeleteButton {
+                                    k: k.clone(),
+                                    private: true
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     })
@@ -263,13 +343,10 @@ fn MyKeys(cx: Scope) -> Element {
                             "Email"
                         }
                         th {
-                            "Actions"
-                        }
-                        th {
                             "Fingerprint"
                         }
                         th {
-                            "Delete"
+                            "Actions"
                         }
                     }
                 }
@@ -285,10 +362,15 @@ fn MyKeys(cx: Scope) -> Element {
                                 k.holder.email().as_str().to_string(),
                             }
                             td {
+                                class: "fingerprint",
+                                k.fingerprint()
+                            }
+                            td {
                                 class: "actions",
                                 a {
                                     href: "",
                                     title: "Copy Public Key",
+                                    class: "action_button",
                                     onclick: {
                                         let k_copy = k.clone();
                                         move |e| {
@@ -304,17 +386,6 @@ fn MyKeys(cx: Scope) -> Element {
                                         fill: "black",
                                         icon: FaCopy,
                                     }
-                                }
-                            }
-                            td {
-                                class: "fingerprint",
-                                k.fingerprint()
-                            }
-                            td {
-                                class: "delete",
-                                DeleteButton {
-                                    k: k.clone(),
-                                    private: true
                                 }
                             }
                         }
@@ -345,7 +416,7 @@ fn MyKeys(cx: Scope) -> Element {
                             }
                         }
                         td {
-                            class: "actions",
+                            class: "fingerprint",
                             input {
                                 "type": "submit",
                                 form: new_key_form_id,
@@ -392,13 +463,10 @@ fn OtherKeys(cx: Scope) -> Element {
                         "Email"
                     }
                     th {
-                        "Actions"
-                    }
-                    th {
                         "Fingerprint"
                     }
                     th {
-                        "Delete"
+                        "Actions"
                     }
                 }
             }
@@ -414,10 +482,15 @@ fn OtherKeys(cx: Scope) -> Element {
                             k.0.holder.email().as_str().to_string(),
                         }
                         td {
+                            class: "fingerprint",
+                            k.0.fingerprint()
+                        }
+                        td {
                             class: "actions",
                             a {
                                 href: "",
                                 title: "Copy Public Key",
+                                class: "action_button",
                                 onclick: {
                                     let k_copy = k.clone();
                                     move |e| {
@@ -433,14 +506,7 @@ fn OtherKeys(cx: Scope) -> Element {
                                     fill: "black",
                                     icon: FaCopy,
                                 }
-                            }
-                        }
-                        td {
-                            class: "fingerprint",
-                            k.0.fingerprint()
-                        }
-                        td {
-                            class: "delete",
+                            },
                             DeleteButton {
                                 k: k.0.clone(),
                                 private: false,
