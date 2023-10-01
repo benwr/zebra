@@ -32,7 +32,7 @@ pub struct Database {
     pub visible_contents: VisibleDatabaseContents,
 }
 
-#[derive(Clone, BorshDeserialize, BorshSerialize, Zeroize, ZeroizeOnDrop)]
+#[derive(Clone, PartialEq, BorshDeserialize, BorshSerialize, Zeroize, ZeroizeOnDrop)]
 pub struct VerificationInfo {
     // None if unverified
     // If verified, the i64 is the unix timestamp (in UTC) at which verification was completed.

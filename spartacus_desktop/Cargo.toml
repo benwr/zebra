@@ -16,7 +16,7 @@ path = "src/main.rs"
 copypasta = "0.8"
 dioxus = "0.4.0"
 dioxus-desktop = "0.4.0"
-dioxus-free-icons = {version = "0.7.0", features = ["font-awesome-regular"]}
+dioxus-free-icons = {version = "0.7.0", features = ["font-awesome-regular", "octicons"]}
 secmem-proc = "0.3"
 
 printable_ascii.workspace = true

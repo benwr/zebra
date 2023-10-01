@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 use dioxus::prelude::*;
 use dioxus_free_icons::{
-    icons::fa_regular_icons::{FaCopy, FaTrashCan},
+    icons::go_icons::{GoCopy, GoTrash, GoUnverified, GoVerified},
     Icon,
 };
 
@@ -14,7 +14,7 @@ use copypasta::{ClipboardContext, ClipboardProvider};
 use printable_ascii::PrintableAsciiString;
 use spartacus::about::About;
 use spartacus_crypto::{PublicKey, SignedMessage};
-use spartacus_storage::{default_db_path, Database};
+use spartacus_storage::{default_db_path, Database, VerificationInfo};
 
 fn main() {
     #[cfg(not(feature = "debug"))]
@@ -210,10 +210,71 @@ fn DeleteButton(cx: Scope<DeleteButtonProps>) -> Element {
                 width: 15,
                 height: 15,
                 fill: "#cc3333",
-                icon: FaTrashCan,
+                icon: GoTrash,
             }
         }
     })
+}
+
+#[derive(PartialEq, Props)]
+struct VerifyButtonProps {
+    k: PublicKey,
+    verif: VerificationInfo,
+}
+
+fn VerifyButton(cx: Scope<VerifyButtonProps>) -> Element {
+    let dbresult = use_shared_state::<std::io::Result<Database>>(cx).unwrap();
+    if let Some(t) = cx.props.verif.verified_time() {
+        cx.render(rsx! {
+            a {
+                class: "action_button",
+                href: "",
+                title: "Verified {t.date()}",
+                onclick: {
+                    move |e| {
+                        e.stop_propagation();
+                        match dbresult.write().deref_mut() {
+                            Ok(ref mut db) => {
+                                let _ = db.set_unverified(&cx.props.k);
+                            }
+                            Err(_e) => {}
+                        }
+                    }
+                },
+                Icon {
+                    width: 15,
+                    height: 15,
+                    fill: "#00f",
+                    icon: GoVerified,
+                }
+            }
+        })
+    } else {
+        cx.render(rsx! {
+            a {
+                class: "action_button",
+                href: "",
+                title: "This key is unverified",
+                onclick: {
+                    move |e| {
+                        e.stop_propagation();
+                        match dbresult.write().deref_mut() {
+                            Ok(ref mut db) => {
+                                let _ = db.set_verified(&cx.props.k);
+                            }
+                            Err(_e) => {}
+                        }
+                    }
+                },
+                Icon {
+                    width: 15,
+                    height: 15,
+                    fill: "#999",
+                    icon: GoUnverified,
+                }
+            }
+        })
+    }
 }
 
 fn Danger(cx: Scope) -> Element {
@@ -384,7 +445,7 @@ fn MyKeys(cx: Scope) -> Element {
                                         width: 15,
                                         height: 15,
                                         fill: "black",
-                                        icon: FaCopy,
+                                        icon: GoCopy,
                                     }
                                 }
                             }
@@ -487,6 +548,10 @@ fn OtherKeys(cx: Scope) -> Element {
                         }
                         td {
                             class: "actions",
+                            VerifyButton {
+                                k: k.0.clone(),
+                                verif: k.1.clone(),
+                            }
                             a {
                                 href: "",
                                 title: "Copy Public Key",
@@ -504,7 +569,7 @@ fn OtherKeys(cx: Scope) -> Element {
                                     width: 15,
                                     height: 15,
                                     fill: "black",
-                                    icon: FaCopy,
+                                    icon: GoCopy,
                                 }
                             },
                             DeleteButton {
