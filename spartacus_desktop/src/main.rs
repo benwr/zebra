@@ -736,6 +736,9 @@ fn Sign(cx: Scope) -> Element {
                     th {
                         "Fingerprint"
                     }
+                    th {
+                        "Verified?"
+                    }
                 }
             }
             tbody {
@@ -757,6 +760,21 @@ fn Sign(cx: Scope) -> Element {
                         td {
                             class: "fingerprint",
                             k.0.fingerprint()
+                        }
+                        td {
+                            if let Some(t) = k.1.verified_time() {
+                                rsx! {
+                                    span {
+                                        title: "Verified {t.date()}",
+                                        Icon {
+                                            width: 15,
+                                            height: 15,
+                                            fill: "#00f",
+                                            icon: GoVerified,
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
