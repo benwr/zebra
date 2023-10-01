@@ -11,6 +11,7 @@ rand.workspace = true
 zeroize.workspace = true
 
 curve25519-dalek = { version = "4", features = ["alloc", "digest", "rand_core"] }
+hex = "0.4"
 regex = "1"
 sha3 = "0.10"
 z85 = "3"

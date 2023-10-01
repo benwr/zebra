@@ -398,8 +398,8 @@ impl From<PublicKey> for String {
             "[{} <{}> {} {}]",
             k.holder.name,
             k.holder.email,
-            z85::encode(k.keypoint.compress()),
-            z85::encode(buffer)
+            hex::encode_upper(k.keypoint.compress()),
+            hex::encode_upper(buffer)
         )
     }
 }
@@ -409,7 +409,7 @@ impl FromStr for PublicKey {
     fn from_str(s: &str) -> Result<PublicKey, ()> {
         use regex::Regex;
         let re = match Regex::new(
-            r"\[([^\n]*) <([!-~]*)> ([0-9a-zA-Z.:+=^!\/*?&<>()\[\]{}@%$#-]{40}) ([0-9a-zA-Z.:+=^!\/*?&<>()\[\]{}@%$#-]{125})\]",
+            r"\[([^\n]*) <([!-~]*)> ([0-9A-F]{64}) ([0-9A-F]{200})\]",
         ) {
             Ok(re) => re,
             Err(_) => return Err(()),
@@ -428,8 +428,8 @@ impl FromStr for PublicKey {
 
         let id = Identity::new(name, email).ok_or(())?;
 
-        let keypoint = z85::decode(keypoint).map_err(|_| ())?;
-        let attestation = z85::decode(attestation).map_err(|_| ())?;
+        let keypoint = hex::decode(keypoint).map_err(|_| ())?;
+        let attestation = hex::decode(attestation).map_err(|_| ())?;
 
         let keypoint = curve25519_dalek::ristretto::CompressedRistretto::from_slice(&keypoint)
             .map_err(|_| ())?
@@ -564,7 +564,7 @@ const SIGNED_MESSAGE_SECOND_LINE: &'static str = "\"\"\"";
 const SIGNED_MESSAGE_INFIX_FIRST_LINE: &'static str = "\"\"\"";
 const SIGNED_MESSAGE_INFIX_SECOND_LINE: &'static str = "";
 const SIGNED_MESSAGE_INFIX_THIRD_LINE: &'static str =
-    "It was signed by someone with a private key corresponding to one of these keys:";
+    "It was signed by someone with a private key corresponding to one of these fingerprints:";
 const SIGNED_MESSAGE_INFIX_FOURTH_LINE: &'static str = "";
 const SIGNED_MESSAGE_SUFFIX_FIRST_LINE: &'static str = "";
 const SIGNED_MESSAGE_SUFFIX_SECOND_LINE: &'static str = "To verify this signature, paste this entire message into the Spartacus app (starting with \"The following message\" and ending with this line).";
