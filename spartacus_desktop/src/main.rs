@@ -823,16 +823,12 @@ fn PasteAndVerify(cx: Scope) -> Element {
         button {
             onclick: move |_| {
                 let mut message_to_verify = message_to_verify.write();
-                if let Ok(mut ctx) = ClipboardContext::new() {
-                    if let Ok(message) = ctx.get_contents() {
-                        if let Ok(signed_message) = SignedMessage::from_str(&message) {
-                            *message_to_verify = MessageToVerify(Some(signed_message));
-                        } else {
-                            *message_to_verify = MessageToVerify(None);
-                        }
-                    } else {
-                        *message_to_verify = MessageToVerify(None);
-                    }
+                if let Some(message) = ClipboardContext::new()
+                    .and_then(|mut ctx| ctx.get_contents())
+                        .ok()
+                        .and_then(|m| SignedMessage::from_str(&m).ok())
+                {
+                    *message_to_verify = MessageToVerify(Some(message));
                 } else {
                     *message_to_verify = MessageToVerify(None);
                 }
@@ -848,6 +844,33 @@ struct VerificationResultsProps {
 }
 
 fn VerificationResults(cx: Scope<VerificationResultsProps>) -> Element {
+    let dbresult = use_shared_state::<std::io::Result<Database>>(cx).unwrap();
+    let (known_keys, my_keys) = match *dbresult.read() {
+        Ok(ref db) => (
+            db.visible_contents.their_public_keys.clone(),
+            db.visible_contents.my_public_keys.clone(),
+        ),
+        Err(_) => (BTreeMap::new(), BTreeSet::new()),
+    };
+
+    let mut all_known = true;
+    let mut all_verified = true;
+    for (pubkey, _) in cx.props.signed_message.ring.iter() {
+        if !my_keys.contains(&pubkey) {
+            match known_keys.get(pubkey) {
+                None => {
+                    all_known = false;
+                    all_verified = false;
+                }
+                Some(v_info) => {
+                    if !v_info.is_verified() {
+                        all_verified = false;
+                    }
+                }
+            }
+        }
+    }
+
     if cx.props.signed_message.verify() {
         cx.render(rsx!{
             b {
@@ -858,8 +881,16 @@ fn VerificationResults(cx: Scope<VerificationResultsProps>) -> Element {
             br {}
             br {}
             b {
-                "This message was signed by someone with the private key associated with one of these identities:"
+                if all_known && all_verified {
+                    "This message was signed by someone with the private key associated with one of these verified identities:"
+                } else if all_known {
+                    "This message was signed by someone with the private key associated with one of these identities (all known, but not all verified):"
+                } else {
+                    "This message was signed by someone with the private key associated with one of these identities, but not all of these are known identities"
+                }
             }
+            br {}
+            br {}
             table {
                 thead {
                     th {
@@ -870,6 +901,9 @@ fn VerificationResults(cx: Scope<VerificationResultsProps>) -> Element {
                     }
                     th {
                         "Fingerprint"
+                    }
+                    th {
+                        "Known"
                     }
                 }
                 tbody {
@@ -883,6 +917,33 @@ fn VerificationResults(cx: Scope<VerificationResultsProps>) -> Element {
                             }
                             td {
                                 "{pubkey.fingerprint()}"
+                            }
+                            td {
+                                if my_keys.contains(&pubkey) || known_keys.get(&pubkey).map(|v| v.is_verified()).unwrap_or(false) {
+                                    rsx!{
+                                        span {
+                                            title: "Key is verified",
+                                            Icon {
+                                                width: 15,
+                                                height: 15,
+                                                fill: "#00f",
+                                                icon: GoVerified,
+                                            }
+                                        }
+                                    }
+                                } else if my_keys.contains(&pubkey) || known_keys.contains_key(&pubkey) {
+                                    rsx!{
+                                        span {
+                                            title: "Key is known but unverified",
+                                            Icon {
+                                                width: 15,
+                                                height: 15,
+                                                fill: "#d80",
+                                                icon: GoVerified,
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
