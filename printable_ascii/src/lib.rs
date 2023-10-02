@@ -6,10 +6,22 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 // shenanigans to treat the PrintableAsciiString as a Vec<u8> *or* a Vec<PrintableAsciiChar>,
 // allowing users to mutate the latter at will.
 
-/// A string of bytes that is impossible to construct with any non-ASCII or non-printable
-/// characters, or with spaces. This is mainly useful as a brute-force solution to avoid homoglyph
+/// A string of bytes that is impossible to construct with any non-ASCII, non-printable, or
+/// whitespace characters. This is mainly useful as a brute-force solution to avoid homoglyph
 /// attacks.
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default, Zeroize, ZeroizeOnDrop)]
+#[derive(
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Debug,
+    Default,
+    BorshSerialize,
+    Zeroize,
+    ZeroizeOnDrop,
+)]
 pub struct PrintableAsciiString(Vec<u8>);
 
 impl PrintableAsciiString {
@@ -35,12 +47,50 @@ impl PrintableAsciiString {
     }
 }
 
+/* BEGIN IMPLEMENTATIONS THAT CAN CONSTRUCT A PRINTABLEASCIISTRING */
+// These should all (indirectly) call `from_bytes`.
+
+impl std::str::FromStr for PrintableAsciiString {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // from_bytes checks that bytes are inside the printable ASCII range, which excludes
+        // multibyte codepoints, and thus anything unexpected.
+        Self::from_bytes(s.as_bytes()).ok_or(())
+    }
+}
+
+impl TryFrom<&str> for PrintableAsciiString {
+    type Error = <PrintableAsciiString as std::str::FromStr>::Err;
+    fn try_from(s: &str) -> Result<PrintableAsciiString, Self::Error> {
+        <PrintableAsciiString as std::str::FromStr>::from_str(s)
+    }
+}
+
+// We serialize to a series of bytes, which means that on deserialization we just have to do the
+// exact same range check as we do on from_bytes.
+impl BorshDeserialize for PrintableAsciiString {
+    fn deserialize_reader<R: std::io::Read>(
+        r: &mut R,
+    ) -> Result<PrintableAsciiString, std::io::Error> {
+        let bytes = <Vec<u8>>::deserialize_reader(r)?;
+        PrintableAsciiString::from_bytes(&bytes).ok_or(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "Unprintable characters when deserializing (supposedly) printable ascii string"
+                .to_string(),
+        ))
+    }
+}
+
+/* END IMPLEMENTATIONS THAT CAN CONSTRUCT A PRINTABLEASCIISTRING */
+
 impl std::fmt::Display for PrintableAsciiString {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.as_str())
     }
 }
 
+// We implement Deref, Borrow, and AsRef, but never DerefMut, BorrowMut, or AsMut, to ensure that
+// users can't change the bytes directly.
 impl std::ops::Deref for PrintableAsciiString {
     type Target = str;
     fn deref(&self) -> &Self::Target {
@@ -84,42 +134,10 @@ impl std::borrow::Borrow<Vec<u8>> for PrintableAsciiString {
     }
 }
 
-impl std::str::FromStr for PrintableAsciiString {
-    type Err = ();
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_bytes(s.as_bytes()).ok_or(())
-    }
-}
-
-impl TryFrom<&str> for PrintableAsciiString {
-    type Error = <PrintableAsciiString as std::str::FromStr>::Err;
-    fn try_from(s: &str) -> Result<PrintableAsciiString, Self::Error> {
-        <PrintableAsciiString as std::str::FromStr>::from_str(s)
-    }
-}
-
 impl From<PrintableAsciiString> for String {
     fn from(s: PrintableAsciiString) -> String {
         String::from_utf8(s.0.clone())
             .expect("ASCII should always be valid UTF-8, but this failed to convert")
-    }
-}
-
-impl BorshSerialize for PrintableAsciiString {
-    fn serialize<W: std::io::Write>(&self, w: &mut W) -> Result<(), std::io::Error> {
-        self.0.serialize(w)
-    }
-}
-
-impl BorshDeserialize for PrintableAsciiString {
-    fn deserialize_reader<R: std::io::Read>(
-        r: &mut R,
-    ) -> Result<PrintableAsciiString, std::io::Error> {
-        let bytes = <Vec<u8>>::deserialize_reader(r)?;
-        PrintableAsciiString::from_bytes(&bytes).ok_or(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "Unprintable characters when deserializing printable ascii string".to_string(),
-        ))
     }
 }
 
@@ -134,6 +152,7 @@ mod tests {
         assert!(PrintableAsciiString::from_bytes(&[b'\x7f']) == None);
         assert!(PrintableAsciiString::from_bytes(&[b'\x1f']) == None);
         assert!(PrintableAsciiString::from_bytes(&[b' ']) == None);
+        assert!(PrintableAsciiString::from_bytes(&[b'\n']) == None);
         assert!(
             PrintableAsciiString::from_bytes("Hi".as_bytes())
                 == Some(PrintableAsciiString(b"Hi".to_vec()))

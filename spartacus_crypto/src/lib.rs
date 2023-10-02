@@ -1,152 +1,19 @@
+mod ristretto;
+
+use ristretto::{RistrettoPoint, Scalar};
+
 use std::str::FromStr;
 
 use borsh::{BorshDeserialize, BorshSerialize};
 use printable_ascii::PrintableAsciiString;
-use rand::rngs::OsRng;
 use sha3::{Digest, Sha3_256, Sha3_512};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
-// We use newtype wrappers for RistrettoPoint and Scalar because we need to (de)serialize them
-// using Borsh. Their APIs stay private to this file, and we only duplicate as much as we use from
-// the dalek API.
-#[derive(Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
-pub struct RistrettoPoint(curve25519_dalek::ristretto::RistrettoPoint);
-
-impl Ord for RistrettoPoint {
-    fn cmp(&self, rhs: &Self) -> std::cmp::Ordering {
-        self.compress().cmp(&rhs.compress())
-    }
-}
-
-impl PartialOrd for RistrettoPoint {
-    fn partial_cmp(&self, rhs: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(rhs))
-    }
-}
-
-impl RistrettoPoint {
-    fn compress(&self) -> [u8; 32] {
-        self.0.compress().to_bytes()
-    }
-
-    fn mul_base(s: &Scalar) -> Self {
-        RistrettoPoint(curve25519_dalek::ristretto::RistrettoPoint::mul_base(&s.0))
-    }
-
-    #[cfg(test)]
-    fn random() -> Self {
-        RistrettoPoint(curve25519_dalek::ristretto::RistrettoPoint::random(
-            &mut OsRng,
-        ))
-    }
-}
-
-impl std::ops::Add<RistrettoPoint> for RistrettoPoint {
-    type Output = RistrettoPoint;
-
-    fn add(self, p: RistrettoPoint) -> Self::Output {
-        RistrettoPoint(self.0 + p.0)
-    }
-}
-
-impl BorshSerialize for RistrettoPoint {
-    fn serialize<W: std::io::Write>(&self, w: &mut W) -> Result<(), std::io::Error> {
-        self.compress().serialize(w)
-    }
-}
-
-impl BorshDeserialize for RistrettoPoint {
-    fn deserialize_reader<R: std::io::Read>(r: &mut R) -> Result<RistrettoPoint, std::io::Error> {
-        let bytes = <[u8; 32]>::deserialize_reader(r)?;
-        let compressed_point = curve25519_dalek::ristretto::CompressedRistretto::from_slice(&bytes)
-            .map_err(|e| {
-                std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!("Could not deserialize ristretto point: {e:?}"),
-                )
-            })?;
-        let point = compressed_point.decompress().ok_or(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "Could not decompress ristretto point".to_string(),
-        ))?;
-        Ok(RistrettoPoint(point))
-    }
-}
-
-#[derive(Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
-pub struct Scalar(curve25519_dalek::Scalar);
-
-impl Ord for Scalar {
-    fn cmp(&self, rhs: &Self) -> std::cmp::Ordering {
-        self.0.as_bytes().cmp(&rhs.0.as_bytes())
-    }
-}
-
-impl PartialOrd for Scalar {
-    fn partial_cmp(&self, rhs: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(rhs))
-    }
-}
-
-impl Scalar {
-    const ZERO: Scalar = Scalar(curve25519_dalek::Scalar::ZERO);
-
-    fn from_hash(hash: Sha3_512) -> Self {
-        Scalar(curve25519_dalek::Scalar::from_hash(hash))
-    }
-
-    fn random() -> Self {
-        Scalar(curve25519_dalek::Scalar::random(&mut OsRng))
-    }
-}
-
-impl std::ops::Mul<Scalar> for Scalar {
-    type Output = Scalar;
-
-    fn mul(self, s: Scalar) -> Self::Output {
-        Scalar(self.0 * s.0)
-    }
-}
-
-impl std::ops::Mul<&RistrettoPoint> for Scalar {
-    type Output = RistrettoPoint;
-
-    fn mul(self, p: &RistrettoPoint) -> Self::Output {
-        RistrettoPoint(self.0 * p.0)
-    }
-}
-
-impl std::ops::Sub<Scalar> for Scalar {
-    type Output = Scalar;
-
-    fn sub(self, s: Scalar) -> Self::Output {
-        Scalar(self.0 - s.0)
-    }
-}
-
-impl BorshSerialize for Scalar {
-    fn serialize<W: std::io::Write>(&self, w: &mut W) -> Result<(), std::io::Error> {
-        self.0.as_bytes().serialize(w)
-    }
-}
-
-impl BorshDeserialize for Scalar {
-    fn deserialize_reader<R: std::io::Read>(r: &mut R) -> Result<Scalar, std::io::Error> {
-        let bytes = <[u8; 32]>::deserialize_reader(r)?;
-        let s = Option::from(curve25519_dalek::Scalar::from_canonical_bytes(bytes)).ok_or(
-            std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "Could not deserialize ristretto scalar".to_string(),
-            ),
-        )?;
-        Ok(Scalar(s))
-    }
-}
-
-/// We make a ring of public keys. First, we add the public key corresponding to the given private
-/// key to the list of possible signers. Then we sort the ring by the members' RistrettoPoints.
-/// That way, all properties of the ring are determined entirely by the choice of keys, and not at
-/// all by randomness.
+/// Make a ring of public keys. First, we add the public key corresponding to the given private key
+/// to the list of possible signers. Then we sort the ring by the members' compressed
+/// RistrettoPoints. That way, all properties of the ring are determined entirely by the choice of
+/// keys, and not at all by randomness (or, worse, any difference between the private and public
+/// keys).
 fn make_ring<T: Clone, F: Fn(T) -> RistrettoPoint>(
     my_key: T,
     other_keys: &[T],
@@ -161,7 +28,7 @@ fn make_ring<T: Clone, F: Fn(T) -> RistrettoPoint>(
 }
 
 /// Generate the hash of the message and public keys in the ring. This serves as the mathematical
-/// object that is actually "signed" in the ring signature.
+/// object that is actually "signed" in the ring signature scheme.
 fn hash_message_and_ring<'a>(
     message: &[u8],
     keys: impl Iterator<Item = &'a RistrettoPoint>,
@@ -269,14 +136,14 @@ impl Signature {
 /// An identity used for creating a ring signature.
 ///
 /// An identity always contains a name and an email address. The name can be almost any utf-8
-/// string: The only exception is that it cannot contain control codes. This ensures that we can
-/// cleanly serialize and deserialize it from a single line. The email address can be only ASCII
-/// strings that are both printable and not spaces. This is a brute-force method for preventing
-/// homoglyph attacks: In the future, we may add functionality for semi-automatically (weakly)
-/// verifying public keys over email. In that case, it's important that any email address that
-/// looks like a familiar one actually *is* that address and not a different one. Fortunately, even
-/// email addresses in regions that primarily use alternative character sets very rarely use
-/// non-ASCII characters.
+/// string: The only exception is that it cannot contain control codes (including e.g. newlines).
+/// This ensures that we can cleanly serialize and deserialize it from a single line. The email
+/// address can be only ASCII strings that are both printable and not whitespace. This is a brute-force
+/// method for preventing homoglyph attacks: In the future, we may add functionality for
+/// semi-automatically (weakly) verifying public keys over email. In that case, it's important that
+/// any email address that looks like a familiar one actually *is* that address and not a different
+/// one. Fortunately, even email addresses in regions that primarily use alternative character sets
+/// very rarely use non-ASCII characters.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Zeroize, ZeroizeOnDrop, BorshSerialize)]
 pub struct Identity {
     name: String,
@@ -320,6 +187,9 @@ impl Identity {
     }
 }
 
+// We implement deserialize explicitly because the derived impl would not check our invariants (no
+// control characters in the identity, and no non-printable or whitespace characters in the email
+// address)
 impl BorshDeserialize for Identity {
     fn deserialize_reader<R: std::io::Read>(r: &mut R) -> std::io::Result<Identity> {
         let name = String::deserialize_reader(r)?;
@@ -332,13 +202,16 @@ impl BorshDeserialize for Identity {
 }
 
 /// A complete public key, containing all the information required to share the key with others, to
-/// store it to disk, or to take part in a ring signature or verification.
+/// store it to disk, or to take part in a ring signature or verification. The attestation of a
+/// constructed PublicKey object *may not be valid*. This must be checked before relying on the
+/// key's validity.
 #[derive(
     Clone, PartialEq, Eq, PartialOrd, Ord, Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize,
 )]
 pub struct PublicKey {
-    pub holder: Identity,
-    pub keypoint: RistrettoPoint,
+    holder: Identity,
+    keypoint: RistrettoPoint,
+
     // We want a public key to be a simple package that can be imported into an app without
     // additional user input (e.g. associating the key with an identity). Thus the public key
     // structure should include the identity as well as the key material. But in that case, we want
@@ -354,12 +227,24 @@ pub struct PublicKey {
     // e.g. by an intermediary. In some sense it would be simpler to use a DSA signature instead
     // of a ring signature, but in practice that would be unnecessary extra code or an extra
     // dependency.
-    pub holder_attestation: Signature,
+    holder_attestation: Signature,
 }
 
 impl PublicKey {
+    pub fn holder(&self) -> Identity {
+        self.holder.clone()
+    }
+
+    pub fn keypoint(&self) -> RistrettoPoint {
+        self.keypoint.clone()
+    }
+
+    pub fn holder_attestation(&self) -> Signature {
+        self.holder_attestation.clone()
+    }
+
     /// Verify that the holder of this public key's corresponding private key has claimed that the
-    /// key belongs to the identity that this key appears with.
+    /// key belongs to the indicated identity.
     fn validate_attestation(&self) -> bool {
         if self.holder_attestation.ring_responses.len() != 1 {
             return false;
@@ -371,23 +256,43 @@ impl PublicKey {
             .verify(&self.holder.bytes_for_attestation(&self.keypoint))
     }
 
+    /// The z85-encoded fingerprint. This fingerprint has spaces inserted after every 8-byte
+    /// (10-character) chunk of the key. This ensures a simple, more-readable, and consistent view
+    /// of the fingerprint data.
     pub fn fingerprint(&self) -> String {
         let mut buffer = vec![];
         let _ = self.serialize(&mut buffer);
         let mut res = z85::encode(Sha3_256::digest(buffer))
             .chars()
             .collect::<Vec<_>>();
-        res.insert(35, ' ');
         res.insert(30, ' ');
-        res.insert(25, ' ');
         res.insert(20, ' ');
-        res.insert(15, ' ');
         res.insert(10, ' ');
-        res.insert(5, ' ');
         res.into_iter().collect()
     }
 }
 
+// The ASCII format for a public key looks like:
+// [Ben Weinstein-Raun <b@w-r.me> AC9AD3F7086D6B34F91AD868D332A34CCB75E2CFD6CCDB99596DA0534CF8C23B 6F2CFB8088A7D3FCF20E0E801BAF0599649D2366D90AC28214EEAC4F23DD8B0801000000AC9AD3F7086D6B34F91AD868D332A34CCB75E2CFD6CCDB99596DA0534CF8C23B82E6357B982AD71F5E8E34FC83F56218225C88A1E2582C4EEC2D7A2A505DFC08]
+// The parts here are:
+// - open square bracket ("[")
+// - the name (which can contain any non-control utf-8 characters)
+// - space and open angle bracket (" <")
+// - the email (which can contain only non-whitespace non-control ascii characters)
+// - close angle bracket and space ("> ")
+// - the hex-encoded compressed ristretto point (64 uppercase hex digits)
+// - space (" ")
+// - the hex-encoded holder attestation (200 uppercase hex digits)
+// - close square bracket ("]")
+//
+// Since the name can contain nearly-arbitrary characters, the key must be parsed from the back as
+// well as the front: The first character must be an open angle bracket, but reading in that
+// direction, it's never clear when the name ends. The string must *end* with the fixed-sized hex
+// ascii attestation and public key, and just before that is an email address that cannot contain
+// spaces, in turn preceded by a space character. Thus, this encoding is bijective and unambiguous
+// in both directions. Also, because the name and email address cannot contain newlines, we can
+// encode lists of public keys as
+// newline-separated strings.
 impl From<PublicKey> for String {
     fn from(k: PublicKey) -> String {
         let mut buffer = vec![];
@@ -408,9 +313,9 @@ impl FromStr for PublicKey {
     type Err = ();
     fn from_str(s: &str) -> Result<PublicKey, ()> {
         use regex::Regex;
-        let re = match Regex::new(
-            r"\[([^\n]*) <([!-~]*)> ([0-9A-F]{64}) ([0-9A-F]{200})\]",
-        ) {
+        // This regex should exactly match the description above, and not allow any matches that
+        // don't fit the pattern described. Fortunately it's pretty simple.
+        let re = match Regex::new(r"^\[([^\n]*) <([!-~]*)> ([0-9A-F]{64}) ([0-9A-F]{200})\]$") {
             Ok(re) => re,
             Err(_) => return Err(()),
         };
@@ -462,7 +367,7 @@ pub struct PrivateKey {
     // We store the holder attestation in the private key as well as the public key, because we
     // don't want to generate distinct attestations for the same keypair: Because each attestation
     // includes a randomly-generated challenge, each independently-generated attestation will be
-    // different. Cryptographicall this shouldn't matter, but it's nice to have only one canonical
+    // different. Cryptographically this shouldn't matter, but it's nice to have only one canonical
     // public key rather than an endless stream of them.
     holder_attestation: Signature,
 }
@@ -490,13 +395,13 @@ impl PrivateKey {
     }
 }
 
-/// A signed message. Contains enough information to verify that one of a given set of public keys
+/// A signed message. Contains enough information to verify that one of the given set of public keys
 /// signed the included message (and that those keys claim to correspond to the given identities).
 #[derive(Clone, PartialEq, Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize)]
 pub struct SignedMessage {
     pub message: String,
     challenge: Scalar,
-    pub ring: Vec<(PublicKey, Scalar)>,
+    ring: Vec<(PublicKey, Scalar)>,
 }
 
 impl SignedMessage {
@@ -556,7 +461,58 @@ impl SignedMessage {
                 .collect(),
         }
     }
+
+    pub fn ring(&self) -> impl Iterator<Item = &PublicKey> {
+        self.ring.iter().map(|(k, _)| k)
+    }
 }
+
+// A Spartacus-signed message in ASCII format looks like this (lines numbered for convenience):
+
+/*
+(0)         The following message has been signed using Spartacus 1.0:
+(1)         """
+(2)         Test
+(M+2)       """
+(M+3)
+(M+4)       It was signed by someone with a private key corresponding to one of these fingerprints:
+(M+5)
+(M+5+1)     Ben Weinstein-Raun <b@w-r.me> Z:$p&B{etV [J3I^)6^#h +4dJaeg6Q. kn-O]{7[tH
+(M+5+N)     Joe Camel <cool@tobacco.com> :z6N5iF%x] OZV9Q-p^0C 0c0*l1i0u/ <EgnZFy!44
+(M+5+N+1)
+(M+5+N+2)   9%Kq+rztr@G/UUZwbP>Z7>&V*av.io+RoI^sPb&o0SSi25=.[ils>3Ss7M8-B97#czy[:{B-4D+003E[Cp^?/zdP/q!aTb+yC+&9/L5.?QFe<N&)li1*NhhYPI[LV.AhV!}*:H2!bn+D4UbI41^@[(bwbQo.H-G&Twp7%IWfs-0069?!aTb+yC+&9/L5.?QFe<N&)li1*NhhYPI[LV.Aiwihg7Yu/b[sVh2J10vI*p]H[S*gekCK-Dmz-%@0n2*}o{}4Ieyfk]hs*-j2Bx<pnD&qD0LlxRmz:?5DJgr002SfwGTuGzdNI{0001ez/oCSBz>R%v}fBfv@Dkx=*PEupvK+z::^HobOkJ[Lr%JJ]puzjY<ELiZ7-&[RpE^E2h^OKLus#2kE%Cj7j%m<z=@>!2OE#</y5?y0002S=*PEupvK+z::^HobOkJ[Lr%JJ]puzjY<ELiZ7-*^4/Af&IVi)R2moE@aE(&{@:wiKNF*Rr0q<6G8k4s6L3zuhs!s8N&9nG(NCOYtp$me1aj.^gt$f7w#4*}O
+(M+5+N+3) 
+(M+5+N+4) To verify this signature, paste this entire message into the Spartacus app (starting with "The following message" and ending with this line).
+*/
+
+// - A fixed prefix (including the 1.0 version number, which should allow us to change aspects of the
+//  format in the future)
+// - an arbitrary message
+// - A fixed explanation of the signature fingerprints
+// - A newline-separated list of key identity information (name, email, and fingerprint)
+// - The contents of the signature itself (z85 encoded)
+// - A fixed suffix explaining how to verify the signature.
+//
+
+// The first two lines of the message are always the same.
+// 
+// The last two lines are also always the same.
+// 
+// Before that is a single line (guaranteed by the z85 character set) representing the signature.
+// 
+// And before that there is a blank line, preceeded by some number of nonblank lines, each of which
+// contains a name, email, and fingerprint of a key from the ring. None of those fields may contain
+// newlines. This section is in turn preceded by a blank line, which lets us determine its boundaries.
+// 
+// Then there's a fixed string separating the signature section from the message section, letting us
+// determine where the message ends.
+// 
+// And thus, even though the message can contain any number of (unescaped) newlines (or any utf-8
+// text), there is no ambiguity in the message contents, and there is a bijection between our
+// signed-message struct and the (syntax of the) ASCII signed message format.
+//
+// The shortest possible message is 12 lines, with M = N = 1. (Note that the line numbering above
+// is zero-indexed, so the length is the last line number plus one.
 
 const SIGNED_MESSAGE_FIRST_LINE: &'static str =
     "The following message has been signed using Spartacus 1.0:";
@@ -568,6 +524,7 @@ const SIGNED_MESSAGE_INFIX_THIRD_LINE: &'static str =
 const SIGNED_MESSAGE_INFIX_FOURTH_LINE: &'static str = "";
 const SIGNED_MESSAGE_SUFFIX_FIRST_LINE: &'static str = "";
 const SIGNED_MESSAGE_SUFFIX_SECOND_LINE: &'static str = "To verify this signature, paste this entire message into the Spartacus app (starting with \"The following message\" and ending with this line).";
+
 
 impl From<&SignedMessage> for String {
     fn from(m: &SignedMessage) -> String {
@@ -604,18 +561,48 @@ impl From<&SignedMessage> for String {
     }
 }
 
+
 impl FromStr for SignedMessage {
     type Err = ();
     /// IMPORTANT NOTE: Success of this method does *not* imply a valid signature, only a
     /// syntactically correct one.
     fn from_str(s: &str) -> Result<SignedMessage, ()> {
+        // Here's the same signed message from above, reproduced to make it easier to follow the
+        // parsing algorithm:
+        /*
+           (0)         The following message has been signed using Spartacus 1.0:
+           (1)         """
+           (2)         Test
+           (M+2)       """
+           (M+3)
+           (M+4)       It was signed by someone with a private key corresponding to one of these fingerprints:
+           (M+5)
+           (M+5+1)     Ben Weinstein-Raun <b@w-r.me> Z:$p&B{etV [J3I^)6^#h +4dJaeg6Q. kn-O]{7[tH
+           (M+5+N)     Joe Camel <cool@tobacco.com> :z6N5iF%x] OZV9Q-p^0C 0c0*l1i0u/ <EgnZFy!44
+           (M+5+N+1)
+           (M+5+N+2)   9%Kq+rztr@G/UUZwbP>Z7>&V*av.io+RoI^sPb&o0SSi25=.[ils>3Ss7M8-B97#czy[:{B-4D+003E[Cp^?/zdP/q!aTb+yC+&9/L5.?QFe<N&)li1*NhhYPI[LV.AhV!}*:H2!bn+D4UbI41^@[(bwbQo.H-G&Twp7%IWfs-0069?!aTb+yC+&9/L5.?QFe<N&)li1*NhhYPI[LV.Aiwihg7Yu/b[sVh2J10vI*p]H[S*gekCK-Dmz-%@0n2*}o{}4Ieyfk]hs*-j2Bx<pnD&qD0LlxRmz:?5DJgr002SfwGTuGzdNI{0001ez/oCSBz>R%v}fBfv@Dkx=*PEupvK+z::^HobOkJ[Lr%JJ]puzjY<ELiZ7-&[RpE^E2h^OKLus#2kE%Cj7j%m<z=@>!2OE#</y5?y0002S=*PEupvK+z::^HobOkJ[Lr%JJ]puzjY<ELiZ7-*^4/Af&IVi)R2moE@aE(&{@:wiKNF*Rr0q<6G8k4s6L3zuhs!s8N&9nG(NCOYtp$me1aj.^gt$f7w#4*}O
+           (M+5+N+3) 
+           (M+5+N+4) To verify this signature, paste this entire message into the Spartacus app (starting with "The following message" and ending with this line).
+         */
+
+        // This could have been done with regular expressions or a parser library. I intentionally
+        // designed the ASCII format to be fairly simple to reason about; my hope is that this
+        // manual parser succeeds at being easier to understand than a BNF-ish or regex-based
+        // parser.
         let lines = s.trim().split('\n').collect::<Vec<_>>();
         if lines.len() < 12 {
+            // The shortest allowed signed message has a single signer and one (possibly empty)
+            // line of message text. This corresponds to M = N = 1, so 1 + 5 + 1 + 4 + 1 = 12 lines.
             return Err(());
         }
+
+        // Check the fixed prefix (lines 0 and 1)
         if lines[0] != SIGNED_MESSAGE_FIRST_LINE || lines[1] != SIGNED_MESSAGE_SECOND_LINE {
             return Err(());
         }
+        // Check the fixed suffix (lines M+5+N+3 and M+5+N+4; a.k.a. lines.len() - 2 and
+        // lines.len() - 1. Then, also check the blank line before the signature data (M+5+N+1 =
+        // lines.len() - 3)
         if lines[lines.len() - 1] != SIGNED_MESSAGE_SUFFIX_SECOND_LINE
             || lines[lines.len() - 2] != SIGNED_MESSAGE_SUFFIX_FIRST_LINE
             || lines[lines.len() - 4] != ""
@@ -623,6 +610,7 @@ impl FromStr for SignedMessage {
             return Err(());
         }
 
+        // extract data from the signature line (line M+5+N+2 = lines.len() - 3)
         let signature_bytes = match z85::decode(lines[lines.len() - 3]) {
             Ok(val) => val,
             Err(_) => return Err(()),
@@ -635,6 +623,8 @@ impl FromStr for SignedMessage {
             Err(_) => return Err(()),
         };
 
+        // Verify that the ring in the signature data exactly matches the data in the text:
+        // (lines M+5+1 through M+5+N; a.k.a. lines.len() - 5 - (N - 1) through lines.len() - 5
         for (i, (signer, _)) in ring.iter().rev().enumerate() {
             if lines[lines.len() - 5 - i]
                 != format!(
@@ -648,6 +638,8 @@ impl FromStr for SignedMessage {
             }
         }
 
+        // check the fixed lines between the ring info and the message (M+2 through M+5, a.k.a.
+        // lines.len() - 5 - ring.len() through lines.len() - 5 - ring.len() - 3)
         if lines[lines.len() - 5 - ring.len()] != SIGNED_MESSAGE_INFIX_FOURTH_LINE
             || lines[lines.len() - 5 - ring.len() - 1] != SIGNED_MESSAGE_INFIX_THIRD_LINE
             || lines[lines.len() - 5 - ring.len() - 2] != SIGNED_MESSAGE_INFIX_SECOND_LINE

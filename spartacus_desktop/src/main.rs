@@ -424,8 +424,8 @@ fn Danger(cx: Scope) -> Element {
                         }
                     }
                     for k in keys.into_iter() {
-                        if k.holder.name().to_lowercase().contains(&filter_name)
-                            && k.holder.email().to_lowercase().contains(&filter_email)
+                        if k.holder().name().to_lowercase().contains(&filter_name)
+                            && k.holder().email().to_lowercase().contains(&filter_email)
                             && k.fingerprint().replace(' ', "").to_lowercase().contains(&filter_fingerprint)
                         {
                             rsx!{
@@ -433,11 +433,11 @@ fn Danger(cx: Scope) -> Element {
                                     key: "{k.fingerprint()}",
                                     td {
                                         class: "name",
-                                        k.holder.name().clone(),
+                                        k.holder().name().clone(),
                                     }
                                     td {
                                         class: "email",
-                                        k.holder.email().as_str().to_string(),
+                                        k.holder().email().as_str().to_string(),
                                     }
                                     td {
                                         class: "fingerprint",
@@ -588,8 +588,8 @@ fn MyKeys(cx: Scope) -> Element {
                         }
                     }
                     for k in keys.into_iter() {
-                        if k.holder.name().to_lowercase().contains(&filter_name)
-                            && k.holder.email().to_lowercase().contains(&filter_email)
+                        if k.holder().name().to_lowercase().contains(&filter_name)
+                            && k.holder().email().to_lowercase().contains(&filter_email)
                             && k.fingerprint().replace(' ', "").to_lowercase().contains(&filter_fingerprint)
                         {
                             rsx! {
@@ -597,11 +597,11 @@ fn MyKeys(cx: Scope) -> Element {
                                     key: "{k.fingerprint()}",
                                     td {
                                         class: "name",
-                                        k.holder.name().clone(),
+                                        k.holder().name().clone(),
                                     }
                                     td {
                                         class: "email",
-                                        k.holder.email().as_str().to_string(),
+                                        k.holder().email().as_str().to_string(),
                                     }
                                     td {
                                         class: "fingerprint",
@@ -657,7 +657,6 @@ fn OtherKeys(cx: Scope) -> Element {
     let filter_name = filter.read().0.name.to_lowercase();
     let filter_email = filter.read().0.email.to_lowercase();
     let filter_fingerprint = filter.read().0.fingerprint.replace(' ', "").to_lowercase();
-
 
     cx.render(rsx! {
         div {
@@ -734,8 +733,8 @@ fn OtherKeys(cx: Scope) -> Element {
                         }
                     }
                     for k in keys.into_iter() {
-                        if k.0.holder.name().to_lowercase().contains(&filter_name)
-                            && k.0.holder.email().to_lowercase().contains(&filter_email)
+                        if k.0.holder().name().to_lowercase().contains(&filter_name)
+                            && k.0.holder().email().to_lowercase().contains(&filter_email)
                             && k.0.fingerprint().replace(' ', "").to_lowercase().contains(&filter_fingerprint)
                         {
                             rsx! {
@@ -743,11 +742,11 @@ fn OtherKeys(cx: Scope) -> Element {
                                     key: "{k.0.fingerprint()}",
                                     td {
                                         class: "name",
-                                        k.0.holder.name().clone(),
+                                        k.0.holder().name().clone(),
                                     }
                                     td {
                                         class: "email",
-                                        k.0.holder.email().as_str().to_string(),
+                                        k.0.holder().email().as_str().to_string(),
                                     }
                                     td {
                                         class: "fingerprint",
@@ -833,7 +832,7 @@ fn PrivateSignerSelect(cx: Scope) -> Element {
                         selected_fingerprint.as_ref().map(|k| &fp == k).unwrap_or(false)
                     },
                     {
-                        format!("{} <{}> {}", k.holder.name(), k.holder.email(), fp)
+                        format!("{} <{}> {}", k.holder().name(), k.holder().email(), fp)
                     }
                 }
             }
@@ -886,7 +885,6 @@ fn Sign(cx: Scope) -> Element {
     let filter_name = filter.read().0.name.to_lowercase();
     let filter_email = filter.read().0.email.to_lowercase();
     let filter_fingerprint = filter.read().0.fingerprint.replace(' ', "").to_lowercase();
-
 
     cx.render(rsx! {
         div {
@@ -970,8 +968,8 @@ fn Sign(cx: Scope) -> Element {
                     }
                 }
                 for k in their_keys.into_iter() {
-                    if k.0.holder.name().to_lowercase().contains(&filter_name)
-                        && k.0.holder.email().to_lowercase().contains(&filter_email)
+                    if k.0.holder().name().to_lowercase().contains(&filter_name)
+                        && k.0.holder().email().to_lowercase().contains(&filter_email)
                         && k.0.fingerprint().replace(' ', "").to_lowercase().contains(&filter_fingerprint)
                     {
                         rsx! {
@@ -984,11 +982,11 @@ fn Sign(cx: Scope) -> Element {
                                 }
                                 td {
                                     class: "name",
-                                    k.0.holder.name()
+                                    k.0.holder().name()
                                 }
                                 td {
                                     class: "email",
-                                    k.0.holder.email()
+                                    k.0.holder().email()
                                 }
                                 td {
                                     class: "fingerprint",
@@ -1088,7 +1086,7 @@ fn VerificationResults(cx: Scope<VerificationResultsProps>) -> Element {
 
     let mut all_known = true;
     let mut all_verified = true;
-    for (pubkey, _) in cx.props.signed_message.ring.iter() {
+    for pubkey in cx.props.signed_message.ring() {
         if !my_keys.contains(&pubkey) {
             match known_keys.get(pubkey) {
                 None => {
@@ -1140,14 +1138,14 @@ fn VerificationResults(cx: Scope<VerificationResultsProps>) -> Element {
                     }
                 }
                 tbody {
-                    for (pubkey, _) in cx.props.signed_message.ring.iter() {
+                    for pubkey in cx.props.signed_message.ring() {
                         tr {
                             key: "{pubkey.fingerprint()}",
                             td {
-                                "{pubkey.holder.name()}"
+                                "{pubkey.holder().name()}"
                             }
                             td {
-                                "{pubkey.holder.email()}"
+                                "{pubkey.holder().email()}"
                             }
                             td {
                                 "{pubkey.fingerprint()}"
