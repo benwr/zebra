@@ -24,7 +24,9 @@ fn make_config() -> dioxus_desktop::Config {
     let mut main_menu = MenuBar::new();
     let mut edit_menu = MenuBar::new();
     let mut window_menu = MenuBar::new();
-    let application_menu = MenuBar::new();
+    let mut application_menu = MenuBar::new();
+
+    application_menu.add_native_item(MenuItem::Quit);
 
     edit_menu.add_native_item(MenuItem::Undo);
     edit_menu.add_native_item(MenuItem::Redo);
@@ -34,7 +36,6 @@ fn make_config() -> dioxus_desktop::Config {
     edit_menu.add_native_item(MenuItem::Paste);
     edit_menu.add_native_item(MenuItem::SelectAll);
 
-    window_menu.add_native_item(MenuItem::Quit);
     window_menu.add_native_item(MenuItem::Minimize);
     window_menu.add_native_item(MenuItem::Zoom);
     window_menu.add_native_item(MenuItem::Separator);

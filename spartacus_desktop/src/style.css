@@ -93,8 +93,13 @@ div.toolbar {
   border-bottom: 1px solid #000;
 }
 
+div.toolbar input, div.toolbar button {
+  margin: 1em;
+}
+
 div.about {
   text-align: center;
+  padding: 1.5em;
 }
 
 div.data {

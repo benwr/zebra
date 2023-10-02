@@ -55,7 +55,7 @@ impl Signature {
     ///
     /// Sources:
     /// https://web.archive.org/web/20230526135545/https://www.getmonero.org/library/Zero-to-Monero-2-0-0.pdf
-    /// (https://www.getmonero.org/library/Zero-to-Monero-2-0-0.pdf; public domain)
+    /// (https://www.getmonero.org/library/Zero-to-Monero-2-0-0.pdf; public domain) (page 27-29)
     /// https://archive.ph/rtOuB (https://github.com/edwinhere/nazgul/blob/master/src/sag.rs;
     /// MIT-licensed)
     /// https://archive.ph/EsIX0 (https://github.com/zudo/ring-signature/blob/main/src/sag.rs;
@@ -76,28 +76,39 @@ impl Signature {
     /// implementation, though I did mainly write it from scratch. However, this may constrain me
     /// to publish this section of code under an MIT license
     fn sign(
-        message: &[u8],
-        my_private_value: Scalar,
-        other_public_keypoints: &[RistrettoPoint],
+        message: &[u8], // m
+        my_private_value: Scalar, // k_pi
+        other_public_keypoints: &[RistrettoPoint], // K_i
     ) -> Self {
+        // K_pi
         let my_public_keypoint = RistrettoPoint::mul_base(&my_private_value);
 
+        // n
         let ring_size = other_public_keypoints.len() + 1;
 
+        // R
         let ring = make_ring(my_public_keypoint.clone(), other_public_keypoints, |k| k);
+
+        // pi
         let my_key_index = ring
             .binary_search_by_key(&my_public_keypoint.compress(), |k| k.compress())
             .expect("Key just inserted into vec, but missing after sorting.");
 
+
+        // initialized to be fake responses r_i
         let mut responses: Vec<Scalar> = (0..ring_size).map(|_| Scalar::random()).collect();
+
         let mut cs: Vec<Scalar> = vec![Scalar::ZERO; ring_size];
 
         let a = Scalar::random();
+        // c_{pi + 1} = H_n(R, m, [aG])
         let initial_hash = hash_message_and_ring(message, ring.iter());
         let mut next_hash_update = RistrettoPoint::mul_base(&a);
 
         for offset_from_my_key in 1..ring_size + 1 {
             let index = (my_key_index + offset_from_my_key) % ring_size;
+
+            // C_{i + 1} = H_n(R, M, [r_i G + c_i K_i])
             let mut hash = initial_hash.clone();
             hash.update(next_hash_update.compress());
             cs[index] = Scalar::from_hash(hash);
@@ -105,6 +116,11 @@ impl Signature {
                 RistrettoPoint::mul_base(&responses[index]) + cs[index].clone() * &ring[index];
         }
 
+        // "Define the real response r_pi such that a = r_pi + c_pi k_pi (mod l)", i.e. r_pi = a -
+        // c_pi k_pi (mod l)
+        // this is the "key" step: If we didn't know one of the private keys, we couldn't compute
+        // the ring signature. Without the private key corresponding to K_pi, this equation would
+        // be unsolvable.
         responses[my_key_index] = a - (cs[my_key_index].clone() * my_private_value);
 
         Self {
@@ -117,6 +133,7 @@ impl Signature {
     /// the private keys corresponding to the public keys in the ring, must have produced this
     /// signature.
     fn verify(&self, message: &[u8]) -> bool {
+        // c_{i + 1}' = H_n(R, m, [r_i G + c_i K_i])
         let initial_hash =
             hash_message_and_ring(message, self.ring_responses.iter().map(|(k, _)| k));
 
@@ -129,6 +146,8 @@ impl Signature {
             h.update(hash_update.compress());
             reconstructed_challenge = Scalar::from_hash(h);
         }
+        
+        // c_1 == c_1'
         self.challenge == reconstructed_challenge
     }
 }

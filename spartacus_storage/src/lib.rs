@@ -12,21 +12,34 @@ use printable_ascii::PrintableAsciiString;
 use spartacus_crypto::{Identity, PrivateKey, PublicKey, SignedMessage};
 
 // Databases will be "human-sized", i.e. almost always have less than 100 private keys and less
-// than 10,000 public keys. Each public key is ~40 bytes for the identity, plus 32 bytes for the
-// keypoint, plus 96 for the attestation and 72 for the verification info, for a total of <250
-// bytes, which means 10,000 of them are <3MiB. As a result, I currently expect that the best
-// method for storing things is to simply write the whole db to disk on every change, into a
-// temporary file, and then move it to overwrite the existing db file when writing is complete.
-// This should roughly ensure that the db is never in a bad state, even if the computer crashes or
-// loses power. Only about 112 of those 250 bytes are compressible at all, so we can get at most a
-// 50% improvement in file size by adding compression. I think we should at least skip it for now,
-// and probably just never worry about it.
+// than 10,000 public keys. A typical public key has <80 bytes for the identity (depending on the
+// name and email length), plus 32 bytes for the keypoint, plus 100 for the attestation. It will be
+// stored alongside an optional verification date (as a unix timestamp in 8 additional bytes), for
+// a total of <250 bytes, which means 10,000 of them are <3MiB. As a result, we simply write the
+// whole db to disk on every change, into a temporary file, and then move it to overwrite the
+// existing db file when writing is complete. This should roughly ensure that the db is never in a
+// bad state, even if the computer crashes or loses power.
+//
+// We try pretty hard to (a) rely on the operating system to securely store the database
+// passphrase, and (b) avoid keeping secret data (especially private keys) in memory when not
+// necessary. Thus, the only data persistently stored in memory is the VisibleDatabaseContents,
+// which doesn't include the user's private keys; just the public keys corresponding to them.
+//
+// There is some risk of the operating system keychain (accidentally or due to resource
+// constraints) forgetting the db passphrase. I don't know of a way to mark the passphrase as
+// "important to preserve". In the absolute worst case, the user can simply delete the database
+// file and start again. But a nice-to-have feature might be to let the user store the random
+// passphrase somewhere safe and then recover a database whose passphrase isn't present in the
+// keychain.
+//
+// We also aim to have all secret types annotated with Zeroize and ZeroizeOnDrop instances, which
+// should ensure that we don't leak sensitive info in core dumps or swap.
 
 const SERVICE_NAME: &str = "Spartacus";
 
 pub struct Database {
     db_path: PathBuf,
-    // We keep this open to ensure that the lock stays held
+    // We keep this open to ensure that the lock stays held throughout the program execution.
     _lockedfile: File,
     // We don't store sensitive information (private keys) in memory if we can avoid it
     pub visible_contents: VisibleDatabaseContents,
@@ -66,6 +79,9 @@ struct DatabaseContentsV0 {
     public_keys: BTreeMap<PublicKey, VerificationInfo>,
 }
 
+// We use an enum here, instead of just storing the struct directly, because this will let us
+// migrate the format in the future if desired. This is also why we use an explicit discriminant for
+// this enum.
 #[derive(BorshDeserialize, BorshSerialize)]
 #[borsh(use_discriminant = true)]
 #[repr(u8)]
@@ -99,52 +115,6 @@ impl DatabaseContentsV0 {
             their_public_keys: public_keys.clone(),
         }
     }
-}
-
-#[cfg(all(not(target_os = "android"), not(feature = "debug")))]
-fn get_username() -> String {
-    let mut result = whoami::username();
-    if result.is_empty() {
-        result = "spartacus_user".to_string();
-    }
-    result
-}
-
-#[cfg(all(not(target_os = "android"), not(feature = "debug")))]
-fn get_or_create_db_key() -> std::io::Result<SecretString> {
-    let entry = match keyring::Entry::new(SERVICE_NAME, &get_username()) {
-        Ok(entry) => entry,
-        Err(e) => {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                e.to_string(),
-            ))
-        }
-    };
-    match entry.get_password() {
-        Ok(pw) => Ok(SecretString::new(pw)),
-        Err(keyring::error::Error::NoEntry) => {
-            use rand::distributions::DistString;
-            let pw = rand::distributions::Alphanumeric.sample_string(&mut rand::rngs::OsRng, 32);
-            match entry.set_password(&pw) {
-                Ok(()) => Ok(SecretString::new(pw)),
-                Err(e) => Err(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    e.to_string(),
-                )),
-            }
-        }
-        Err(e) => Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            e.to_string(),
-        )),
-    }
-}
-
-// NOTE: If keyring ever supports the android keystore, we should (carefully!) update this.
-#[cfg(any(target_os = "android", feature = "debug"))]
-fn get_or_create_db_key() -> std::io::Result<SecretString> {
-    Ok(SecretString::new("".to_string()))
 }
 
 impl Database {
@@ -211,8 +181,8 @@ impl Database {
 
         use std::io::Read;
         let mut bytes = vec![];
-        // We've already authenticated this file, since age is AEAD. So we can be relatively sure
-        // that it's not crafted to DoS us.
+        // We've already authenticated this file, since age is AEAD when using a passphrase. So we
+        // can be relatively sure that it's not crafted to DoS us or anything.
         reader.read_to_end(&mut bytes)?;
         let SpartacusDatabaseContents::V0(res) =
             BorshDeserialize::deserialize(&mut bytes.as_ref())?;
@@ -348,6 +318,53 @@ fn app_dir() -> PathBuf {
 #[cfg(not(feature = "debug"))]
 pub fn default_db_path() -> PathBuf {
     app_dir().join("spartacus_db.age")
+}
+
+#[cfg(all(not(target_os = "android"), not(feature = "debug")))]
+fn get_username() -> String {
+    let mut result = whoami::username();
+    if result.is_empty() {
+        result = "spartacus_user".to_string();
+    }
+    result
+}
+
+#[cfg(all(not(target_os = "android"), not(feature = "debug")))]
+fn get_or_create_db_key() -> std::io::Result<SecretString> {
+    let entry = match keyring::Entry::new(SERVICE_NAME, &get_username()) {
+        Ok(entry) => entry,
+        Err(e) => {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                e.to_string(),
+            ))
+        }
+    };
+    match entry.get_password() {
+        Ok(pw) => Ok(SecretString::new(pw)),
+        Err(keyring::error::Error::NoEntry) => {
+            use rand::distributions::DistString;
+            let pw = rand::distributions::Alphanumeric.sample_string(&mut rand::rngs::OsRng, 32);
+            match entry.set_password(&pw) {
+                Ok(()) => Ok(SecretString::new(pw)),
+                Err(e) => Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    e.to_string(),
+                )),
+            }
+        }
+        Err(e) => Err(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            e.to_string(),
+        )),
+    }
+}
+// NOTE: If keyring ever supports the android keystore, we should (carefully!) update this.
+// See https://github.com/hwchen/keyring-rs/issues/127 ; it looks like if this is implemented it
+// might just store the file in app storage, which defeats the purpose in our case.
+#[cfg(any(target_os = "android", feature = "debug"))]
+fn get_or_create_db_key() -> std::io::Result<SecretString> {
+    Ok(SecretString::new("".to_string()))
 }
 
 #[cfg(feature = "debug")]

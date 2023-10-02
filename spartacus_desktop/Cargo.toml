@@ -1,7 +1,7 @@
 [package]
 name = "Spartacus"
 description = "A tool for creating and verifying ring signatures."
-version = "0.1.0"
+version = "1.0.0-alpha"
 edition = "2021"
 
 [lib]
