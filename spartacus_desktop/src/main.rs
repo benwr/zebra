@@ -430,6 +430,7 @@ fn Danger(cx: Scope) -> Element {
                         {
                             rsx!{
                                 tr {
+                                    key: "{k.fingerprint()}",
                                     td {
                                         class: "name",
                                         k.holder.name().clone(),
@@ -510,6 +511,31 @@ fn MyKeys(cx: Scope) -> Element {
         }
         div {
             class: "toolbar",
+            input {
+                class: "new_key_name_input",
+                value: "{new_private_name_val}",
+                placeholder: "New Key Name",
+                form: new_key_form_id,
+                oninput: move |evt| *new_private_name.write() = NewPrivateName(evt.value.clone())
+            }
+            input {
+                class: "new_key_email_input",
+                value: "{new_private_email_val}",
+                placeholder: "New Key Email",
+                form: new_key_form_id,
+                oninput: move |evt| {
+                    if let Ok(new) = PrintableAsciiString::from_str(&evt.value) {
+                        *new_private_email.write() = NewPrivateEmail(new)
+                    } else {
+                        *new_private_email.write() = NewPrivateEmail(new_private_email_val.clone())
+                    }
+                }
+            }
+            input {
+                "type": "submit",
+                form: new_key_form_id,
+                value: "Create New Keypair"
+            }
         }
         div {
             class: "data",
@@ -568,6 +594,7 @@ fn MyKeys(cx: Scope) -> Element {
                         {
                             rsx! {
                                 tr {
+                                    key: "{k.fingerprint()}",
                                     td {
                                         class: "name",
                                         k.holder.name().clone(),
@@ -607,45 +634,6 @@ fn MyKeys(cx: Scope) -> Element {
                             }
                         }
                     }
-                    tr {
-                        td {
-                            class: "name",
-                            input {
-                                class: "new_key_name_input",
-                                value: "{new_private_name_val}",
-                                placeholder: "New Key Name",
-                                form: new_key_form_id,
-                                oninput: move |evt| *new_private_name.write() = NewPrivateName(evt.value.clone())
-                            }
-                        }
-                        td {
-                            class: "email",
-                            input {
-                                class: "new_key_email_input",
-                                value: "{new_private_email_val}",
-                                placeholder: "New Key Email",
-                                form: new_key_form_id,
-                                oninput: move |evt| {
-                                    if let Ok(new) = PrintableAsciiString::from_str(&evt.value) {
-                                        *new_private_email.write() = NewPrivateEmail(new)
-                                    } else {
-                                        *new_private_email.write() = NewPrivateEmail(new_private_email_val.clone())
-                                    }
-                                }
-                            }
-                        }
-                        td {
-                            class: "fingerprint",
-                            input {
-                                "type": "submit",
-                                form: new_key_form_id,
-                                value: "Create New Keypair"
-                            }
-                        }
-                        td {
-                            class: "fingerprint",
-                        }
-                    }
                 }
             }
         }
@@ -674,105 +662,127 @@ fn OtherKeys(cx: Scope) -> Element {
     cx.render(rsx! {
         div {
             class: "toolbar",
+            button {
+                onclick: move |_| {
+                    if let Ok(ref mut db) = dbresult.write().deref_mut() {
+                        if let Ok(mut ctx) = ClipboardContext::new() {
+                            if let Ok(contents) = ctx.get_contents() {
+                                let mut to_import = vec![];
+                                for line in contents.split('\n') {
+                                    if let Ok(key) = PublicKey::from_str(&line) {
+                                        to_import.push(key)
+                                    } else {
+                                        return;
+                                    }
+                                }
+                                let _ = db.add_public_keys(&to_import);
+                            }
+                        }
+                    }
+                },
+                "Import Pulic Key from Clipboard"
+            }
         },
         div {
             class: "data",
-        table {
-            class: "otherkeys",
-            thead {
-                tr {
-                    th {
-                        "Name"
-                    }
-                    th {
-                        "Email"
-                    }
-                    th {
-                        "Fingerprint"
-                    }
-                    th {
-                        "Actions"
+            table {
+                class: "otherkeys",
+                thead {
+                    tr {
+                        th {
+                            "Name"
+                        }
+                        th {
+                            "Email"
+                        }
+                        th {
+                            "Fingerprint"
+                        }
+                        th {
+                            "Actions"
+                        }
                     }
                 }
-            }
-            tbody {
-                tr {
-                    td {
-                        class: "name",
-                        input {
-                            "type": "search",
-                            placeholder: "Filter names",
-                            oninput: move |evt| (*filter.write()).0.name = evt.value.clone()
+                tbody {
+                    tr {
+                        td {
+                            class: "name",
+                            input {
+                                "type": "search",
+                                placeholder: "Filter names",
+                                oninput: move |evt| (*filter.write()).0.name = evt.value.clone()
+                            }
+                        }
+                        td {
+                            class: "email",
+                            input {
+                                "type": "search",
+                                placeholder: "Filter emails",
+                                oninput: move |evt| (*filter.write()).0.email = evt.value.clone()
+                            }
+                        }
+                        td {
+                            class: "fingerprint",
+                            input {
+                                "type": "search",
+                                placeholder: "Filter fingerprints",
+                                oninput: move |evt| (*filter.write()).0.fingerprint = evt.value.clone()
+                            }
+                        }
+                        td {
+                            class: "actions"
                         }
                     }
-                    td {
-                        class: "email",
-                        input {
-                            "type": "search",
-                            placeholder: "Filter emails",
-                            oninput: move |evt| (*filter.write()).0.email = evt.value.clone()
-                        }
-                    }
-                    td {
-                        class: "fingerprint",
-                        input {
-                            "type": "search",
-                            placeholder: "Filter fingerprints",
-                            oninput: move |evt| (*filter.write()).0.fingerprint = evt.value.clone()
-                        }
-                    }
-                    td {
-                        class: "actions"
-                    }
-                }
-                for k in keys.into_iter() {
-                    if k.0.holder.name().to_lowercase().contains(&filter_name)
-                        && k.0.holder.email().to_lowercase().contains(&filter_email)
-                        && k.0.fingerprint().replace(' ', "").to_lowercase().contains(&filter_fingerprint)
-                    {
-                        rsx! {
-                            tr {
-                                td {
-                                    class: "name",
-                                    k.0.holder.name().clone(),
-                                }
-                                td {
-                                    class: "email",
-                                    k.0.holder.email().as_str().to_string(),
-                                }
-                                td {
-                                    class: "fingerprint",
-                                    k.0.fingerprint()
-                                }
-                                td {
-                                    class: "actions",
-                                    VerifyButton {
-                                        k: k.0.clone(),
-                                        verif: k.1.clone(),
+                    for k in keys.into_iter() {
+                        if k.0.holder.name().to_lowercase().contains(&filter_name)
+                            && k.0.holder.email().to_lowercase().contains(&filter_email)
+                            && k.0.fingerprint().replace(' ', "").to_lowercase().contains(&filter_fingerprint)
+                        {
+                            rsx! {
+                                tr {
+                                    key: "{k.0.fingerprint()}",
+                                    td {
+                                        class: "name",
+                                        k.0.holder.name().clone(),
                                     }
-                                    a {
-                                        href: "",
-                                        title: "Copy Public Key",
-                                        class: "action_button",
-                                        onclick: {
-                                            let k_copy = k.clone();
-                                            move |e| {
-                                                e.stop_propagation();
-                                                if let Ok(mut ctx) = ClipboardContext::new() {
-                                                    let _ = ctx.set_contents(k_copy.0.clone().into());
+                                    td {
+                                        class: "email",
+                                        k.0.holder.email().as_str().to_string(),
+                                    }
+                                    td {
+                                        class: "fingerprint",
+                                        k.0.fingerprint()
+                                    }
+                                    td {
+                                        class: "actions",
+                                        VerifyButton {
+                                            k: k.0.clone(),
+                                            verif: k.1.clone(),
+                                        }
+                                        a {
+                                            href: "",
+                                            title: "Copy Public Key",
+                                            class: "action_button",
+                                            onclick: {
+                                                let k_copy = k.clone();
+                                                move |e| {
+                                                    e.stop_propagation();
+                                                    if let Ok(mut ctx) = ClipboardContext::new() {
+                                                        let _ = ctx.set_contents(k_copy.0.clone().into());
+                                                    }
                                                 }
+                                            },
+                                            Icon {
+                                                width: 15,
+                                                height: 15,
+                                                fill: "black",
+                                                icon: GoCopy,
                                             }
                                         },
-                                        Icon {
-                                            width: 15,
-                                            height: 15,
-                                            fill: "black",
-                                            icon: GoCopy,
+                                        DeleteButton {
+                                            k: k.0.clone(),
+                                            private: false,
                                         }
-                                    },
-                                    DeleteButton {
-                                        k: k.0.clone(),
-                                        private: false,
                                     }
                                 }
                             }
@@ -780,27 +790,6 @@ fn OtherKeys(cx: Scope) -> Element {
                     }
                 }
             }
-        }
-        button {
-            onclick: move |_| {
-                if let Ok(ref mut db) = dbresult.write().deref_mut() {
-                    if let Ok(mut ctx) = ClipboardContext::new() {
-                        if let Ok(contents) = ctx.get_contents() {
-                            let mut to_import = vec![];
-                            for line in contents.split('\n') {
-                                if let Ok(key) = PublicKey::from_str(&line) {
-                                    to_import.push(key)
-                                } else {
-                                    return;
-                                }
-                            }
-                            let _ = db.add_public_keys(&to_import);
-                        }
-                    }
-                }
-            },
-            "Import from Clipboard"
-        }
         }
     })
 }
@@ -987,6 +976,7 @@ fn Sign(cx: Scope) -> Element {
                     {
                         rsx! {
                             tr {
+                                key: "{k.0.fingerprint()}",
                                 td {
                                     PublicSignerSelect {
                                         k: k.0.clone()
@@ -1152,6 +1142,7 @@ fn VerificationResults(cx: Scope<VerificationResultsProps>) -> Element {
                 tbody {
                     for (pubkey, _) in cx.props.signed_message.ring.iter() {
                         tr {
+                            key: "{pubkey.fingerprint()}",
                             td {
                                 "{pubkey.holder.name()}"
                             }
