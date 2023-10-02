@@ -4,6 +4,10 @@ use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 
 use dioxus::prelude::*;
+use dioxus_desktop::{
+    tao::menu::{MenuBar, MenuItem},
+    WindowBuilder,
+};
 use dioxus_free_icons::{
     icons::go_icons::{GoCopy, GoTrash, GoUnverified, GoVerified},
     Icon,
@@ -16,6 +20,38 @@ use spartacus::about::About;
 use spartacus_crypto::{PublicKey, SignedMessage};
 use spartacus_storage::{default_db_path, Database, VerificationInfo};
 
+fn make_config() -> dioxus_desktop::Config {
+    let mut main_menu = MenuBar::new();
+    let mut edit_menu = MenuBar::new();
+    let mut window_menu = MenuBar::new();
+    let application_menu = MenuBar::new();
+
+    edit_menu.add_native_item(MenuItem::Undo);
+    edit_menu.add_native_item(MenuItem::Redo);
+    edit_menu.add_native_item(MenuItem::Separator);
+    edit_menu.add_native_item(MenuItem::Cut);
+    edit_menu.add_native_item(MenuItem::Copy);
+    edit_menu.add_native_item(MenuItem::Paste);
+    edit_menu.add_native_item(MenuItem::SelectAll);
+
+    window_menu.add_native_item(MenuItem::Quit);
+    window_menu.add_native_item(MenuItem::Minimize);
+    window_menu.add_native_item(MenuItem::Zoom);
+    window_menu.add_native_item(MenuItem::Separator);
+    window_menu.add_native_item(MenuItem::ShowAll);
+    window_menu.add_native_item(MenuItem::EnterFullScreen);
+
+    main_menu.add_submenu("Spartacus", true, application_menu);
+    main_menu.add_submenu("Edit", true, edit_menu);
+    main_menu.add_submenu("Window", true, window_menu);
+
+    dioxus_desktop::Config::default().with_window(
+        WindowBuilder::new()
+            .with_title("Spartacus")
+            .with_menu(main_menu),
+    )
+}
+
 fn main() {
     #[cfg(not(feature = "debug"))]
     // This is overkill, but also cheap.
@@ -23,7 +59,7 @@ fn main() {
         eprintln!("Error: Could not harden process; exiting. {e}");
         return;
     }
-    dioxus_desktop::launch(App);
+    dioxus_desktop::launch_cfg(App, make_config());
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -36,12 +72,22 @@ enum ActiveTab {
     Danger,
 }
 
+struct TableFilter {
+    name: String,
+    email: String,
+    fingerprint: String,
+}
+
 struct NewPrivateName(String);
 struct NewPrivateEmail(PrintableAsciiString);
 struct TextToSign(String);
 struct MessageToVerify(Option<SignedMessage>);
 struct SelectedPrivateSigner(Option<PublicKey>);
 struct SelectedPublicSigners(BTreeSet<PublicKey>);
+struct PrivateFilter(TableFilter);
+struct PublicFilter(TableFilter);
+struct SignerFilter(TableFilter);
+struct DangerFilter(TableFilter);
 
 fn App(cx: Scope) -> Element {
     let desktop = dioxus_desktop::use_window(cx);
@@ -53,6 +99,34 @@ fn App(cx: Scope) -> Element {
     use_shared_state_provider(cx, || TextToSign(String::new()));
     use_shared_state_provider(cx, || MessageToVerify(None));
     use_shared_state_provider(cx, || SelectedPublicSigners(BTreeSet::new()));
+    use_shared_state_provider(cx, || {
+        SignerFilter(TableFilter {
+            name: String::new(),
+            email: String::new(),
+            fingerprint: String::new(),
+        })
+    });
+    use_shared_state_provider(cx, || {
+        PrivateFilter(TableFilter {
+            name: String::new(),
+            email: String::new(),
+            fingerprint: String::new(),
+        })
+    });
+    use_shared_state_provider(cx, || {
+        PublicFilter(TableFilter {
+            name: String::new(),
+            email: String::new(),
+            fingerprint: String::new(),
+        })
+    });
+    use_shared_state_provider(cx, || {
+        DangerFilter(TableFilter {
+            name: String::new(),
+            email: String::new(),
+            fingerprint: String::new(),
+        })
+    });
 
     let db = Database::new(default_db_path());
 
@@ -69,7 +143,7 @@ fn App(cx: Scope) -> Element {
     use_shared_state_provider(cx, || db);
 
     cx.render(rsx! {
-        section {
+        div {
             class: "spartacus",
             style { include_str!("style.css") }
             TabSelect {}
@@ -288,6 +362,11 @@ fn Danger(cx: Scope) -> Element {
             })
         }
     };
+    let filter = use_shared_state::<DangerFilter>(cx).unwrap();
+
+    let filter_name = filter.read().0.name.to_lowercase();
+    let filter_email = filter.read().0.email.to_lowercase();
+    let filter_fingerprint = filter.read().0.fingerprint.replace(' ', "").to_lowercase();
 
     cx.render(rsx! {
         div {
@@ -315,25 +394,61 @@ fn Danger(cx: Scope) -> Element {
                     }
                 }
                 tbody {
+                    tr {
+                        td {
+                            class: "name",
+                            input {
+                                "type": "search",
+                                placeholder: "Filter names",
+                                oninput: move |evt| (*filter.write()).0.name = evt.value.clone()
+                            }
+                        }
+                        td {
+                            class: "email",
+                            input {
+                                "type": "search",
+                                placeholder: "Filter emails",
+                                oninput: move |evt| (*filter.write()).0.email = evt.value.clone()
+                            }
+                        }
+                        td {
+                            class: "fingerprint",
+                            input {
+                                "type": "search",
+                                placeholder: "Filter fingerprints",
+                                oninput: move |evt| (*filter.write()).0.fingerprint = evt.value.clone()
+                            }
+                        }
+                        td {
+                            class: "delete"
+                        }
+                    }
                     for k in keys.into_iter() {
-                        tr {
-                            td {
-                                class: "name",
-                                k.holder.name().clone(),
-                            }
-                            td {
-                                class: "email",
-                                k.holder.email().as_str().to_string(),
-                            }
-                            td {
-                                class: "fingerprint",
-                                k.fingerprint()
-                            }
-                            td {
-                                class: "delete",
-                                DeleteButton {
-                                    k: k.clone(),
-                                    private: true
+                        if k.holder.name().to_lowercase().contains(&filter_name)
+                            && k.holder.email().to_lowercase().contains(&filter_email)
+                            && k.fingerprint().replace(' ', "").to_lowercase().contains(&filter_fingerprint)
+                        {
+                            rsx!{
+                                tr {
+                                    td {
+                                        class: "name",
+                                        k.holder.name().clone(),
+                                    }
+                                    td {
+                                        class: "email",
+                                        k.holder.email().as_str().to_string(),
+                                    }
+                                    td {
+                                        class: "fingerprint",
+                                        k.fingerprint()
+                                    }
+                                    td {
+                                        class: "delete",
+                                        DeleteButton {
+                                            k: k.clone(),
+                                            private: true
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -365,6 +480,12 @@ fn MyKeys(cx: Scope) -> Element {
 
     let new_key_form_id = "new_key_form";
 
+    let filter = use_shared_state::<PrivateFilter>(cx).unwrap();
+
+    let filter_name = filter.read().0.name.to_lowercase();
+    let filter_email = filter.read().0.email.to_lowercase();
+    let filter_fingerprint = filter.read().0.fingerprint.replace(' ', "").to_lowercase();
+
     cx.render(rsx! {
         form {
             onsubmit: move |_| {
@@ -389,7 +510,6 @@ fn MyKeys(cx: Scope) -> Element {
         }
         div {
             class: "toolbar",
-            "Hi there!"
         }
         div {
             class: "data",
@@ -412,40 +532,76 @@ fn MyKeys(cx: Scope) -> Element {
                     }
                 }
                 tbody {
+                    tr {
+                        td {
+                            class: "name",
+                            input {
+                                "type": "search",
+                                placeholder: "Filter names",
+                                oninput: move |evt| (*filter.write()).0.name = evt.value.clone()
+                            }
+                        }
+                        td {
+                            class: "email",
+                            input {
+                                "type": "search",
+                                placeholder: "Filter emails",
+                                oninput: move |evt| (*filter.write()).0.email = evt.value.clone()
+                            }
+                        }
+                        td {
+                            class: "fingerprint",
+                            input {
+                                "type": "search",
+                                placeholder: "Filter fingerprints",
+                                oninput: move |evt| (*filter.write()).0.fingerprint = evt.value.clone()
+                            }
+                        }
+                        td {
+                            class: "actions"
+                        }
+                    }
                     for k in keys.into_iter() {
-                        tr {
-                            td {
-                                class: "name",
-                                k.holder.name().clone(),
-                            }
-                            td {
-                                class: "email",
-                                k.holder.email().as_str().to_string(),
-                            }
-                            td {
-                                class: "fingerprint",
-                                k.fingerprint()
-                            }
-                            td {
-                                class: "actions",
-                                a {
-                                    href: "",
-                                    title: "Copy Public Key",
-                                    class: "action_button",
-                                    onclick: {
-                                        let k_copy = k.clone();
-                                        move |e| {
-                                            e.stop_propagation();
-                                            if let Ok(mut ctx) = ClipboardContext::new() {
-                                                let _ = ctx.set_contents(k_copy.clone().into());
+                        if k.holder.name().to_lowercase().contains(&filter_name)
+                            && k.holder.email().to_lowercase().contains(&filter_email)
+                            && k.fingerprint().replace(' ', "").to_lowercase().contains(&filter_fingerprint)
+                        {
+                            rsx! {
+                                tr {
+                                    td {
+                                        class: "name",
+                                        k.holder.name().clone(),
+                                    }
+                                    td {
+                                        class: "email",
+                                        k.holder.email().as_str().to_string(),
+                                    }
+                                    td {
+                                        class: "fingerprint",
+                                        k.fingerprint()
+                                    }
+                                    td {
+                                        class: "actions",
+                                        a {
+                                            href: "",
+                                            title: "Copy Public Key",
+                                            class: "action_button",
+                                            onclick: {
+                                                let k_copy = k.clone();
+                                                move |e| {
+                                                    e.stop_propagation();
+                                                    if let Ok(mut ctx) = ClipboardContext::new() {
+                                                        let _ = ctx.set_contents(k_copy.clone().into());
+                                                    }
+                                                }
+                                            },
+                                            Icon {
+                                                width: 15,
+                                                height: 15,
+                                                fill: "black",
+                                                icon: GoCopy,
                                             }
                                         }
-                                    },
-                                    Icon {
-                                        width: 15,
-                                        height: 15,
-                                        fill: "black",
-                                        icon: GoCopy,
                                     }
                                 }
                             }
@@ -457,6 +613,7 @@ fn MyKeys(cx: Scope) -> Element {
                             input {
                                 class: "new_key_name_input",
                                 value: "{new_private_name_val}",
+                                placeholder: "New Key Name",
                                 form: new_key_form_id,
                                 oninput: move |evt| *new_private_name.write() = NewPrivateName(evt.value.clone())
                             }
@@ -466,6 +623,7 @@ fn MyKeys(cx: Scope) -> Element {
                             input {
                                 class: "new_key_email_input",
                                 value: "{new_private_email_val}",
+                                placeholder: "New Key Email",
                                 form: new_key_form_id,
                                 oninput: move |evt| {
                                     if let Ok(new) = PrintableAsciiString::from_str(&evt.value) {
@@ -506,10 +664,16 @@ fn OtherKeys(cx: Scope) -> Element {
         }
     };
 
+    let filter = use_shared_state::<PublicFilter>(cx).unwrap();
+
+    let filter_name = filter.read().0.name.to_lowercase();
+    let filter_email = filter.read().0.email.to_lowercase();
+    let filter_fingerprint = filter.read().0.fingerprint.replace(' ', "").to_lowercase();
+
+
     cx.render(rsx! {
         div {
             class: "toolbar",
-            "Hi there!"
         },
         div {
             class: "data",
@@ -532,49 +696,85 @@ fn OtherKeys(cx: Scope) -> Element {
                 }
             }
             tbody {
+                tr {
+                    td {
+                        class: "name",
+                        input {
+                            "type": "search",
+                            placeholder: "Filter names",
+                            oninput: move |evt| (*filter.write()).0.name = evt.value.clone()
+                        }
+                    }
+                    td {
+                        class: "email",
+                        input {
+                            "type": "search",
+                            placeholder: "Filter emails",
+                            oninput: move |evt| (*filter.write()).0.email = evt.value.clone()
+                        }
+                    }
+                    td {
+                        class: "fingerprint",
+                        input {
+                            "type": "search",
+                            placeholder: "Filter fingerprints",
+                            oninput: move |evt| (*filter.write()).0.fingerprint = evt.value.clone()
+                        }
+                    }
+                    td {
+                        class: "actions"
+                    }
+                }
                 for k in keys.into_iter() {
-                    tr {
-                        td {
-                            class: "name",
-                            k.0.holder.name().clone(),
-                        }
-                        td {
-                            class: "email",
-                            k.0.holder.email().as_str().to_string(),
-                        }
-                        td {
-                            class: "fingerprint",
-                            k.0.fingerprint()
-                        }
-                        td {
-                            class: "actions",
-                            VerifyButton {
-                                k: k.0.clone(),
-                                verif: k.1.clone(),
-                            }
-                            a {
-                                href: "",
-                                title: "Copy Public Key",
-                                class: "action_button",
-                                onclick: {
-                                    let k_copy = k.clone();
-                                    move |e| {
-                                        e.stop_propagation();
-                                        if let Ok(mut ctx) = ClipboardContext::new() {
-                                            let _ = ctx.set_contents(k_copy.0.clone().into());
-                                        }
-                                    }
-                                },
-                                Icon {
-                                    width: 15,
-                                    height: 15,
-                                    fill: "black",
-                                    icon: GoCopy,
+                    if k.0.holder.name().to_lowercase().contains(&filter_name)
+                        && k.0.holder.email().to_lowercase().contains(&filter_email)
+                        && k.0.fingerprint().replace(' ', "").to_lowercase().contains(&filter_fingerprint)
+                    {
+                        rsx! {
+                            tr {
+                                td {
+                                    class: "name",
+                                    k.0.holder.name().clone(),
                                 }
-                            },
-                            DeleteButton {
-                                k: k.0.clone(),
-                                private: false,
+                                td {
+                                    class: "email",
+                                    k.0.holder.email().as_str().to_string(),
+                                }
+                                td {
+                                    class: "fingerprint",
+                                    k.0.fingerprint()
+                                }
+                                td {
+                                    class: "actions",
+                                    VerifyButton {
+                                        k: k.0.clone(),
+                                        verif: k.1.clone(),
+                                    }
+                                    a {
+                                        href: "",
+                                        title: "Copy Public Key",
+                                        class: "action_button",
+                                        onclick: {
+                                            let k_copy = k.clone();
+                                            move |e| {
+                                                e.stop_propagation();
+                                                if let Ok(mut ctx) = ClipboardContext::new() {
+                                                    let _ = ctx.set_contents(k_copy.0.clone().into());
+                                                }
+                                            }
+                                        },
+                                        Icon {
+                                            width: 15,
+                                            height: 15,
+                                            fill: "black",
+                                            icon: GoCopy,
+                                        }
+                                    },
+                                    DeleteButton {
+                                        k: k.0.clone(),
+                                        private: false,
+                                    }
+                                }
                             }
                         }
                     }
@@ -692,10 +892,17 @@ fn Sign(cx: Scope) -> Element {
     let text_to_sign = use_shared_state::<TextToSign>(cx).unwrap();
     let text_to_sign_val = text_to_sign.read().deref().0.clone();
 
+    let filter = use_shared_state::<SignerFilter>(cx).unwrap();
+
+    let filter_name = filter.read().0.name.to_lowercase();
+    let filter_email = filter.read().0.email.to_lowercase();
+    let filter_fingerprint = filter.read().0.fingerprint.replace(' ', "").to_lowercase();
+
+
     cx.render(rsx! {
         div {
             class: "toolbar",
-            "Hi there!"
+            SignAndCopy {}
         },
         div {
             class: "data",
@@ -742,35 +949,73 @@ fn Sign(cx: Scope) -> Element {
                 }
             }
             tbody {
-                for k in their_keys {
-                    tr {
-                        td {
-                            PublicSignerSelect {
-                                k: k.0.clone()
-                            }
+                tr {
+                    td {
+                    }
+                    td {
+                        class: "name",
+                        input {
+                            "type": "search",
+                            placeholder: "Filter names",
+                            oninput: move |evt| (*filter.write()).0.name = evt.value.clone()
                         }
-                        td {
-                            class: "name",
-                            k.0.holder.name()
+                    }
+                    td {
+                        class: "email",
+                        input {
+                            "type": "search",
+                            placeholder: "Filter emails",
+                            oninput: move |evt| (*filter.write()).0.email = evt.value.clone()
                         }
-                        td {
-                            class: "email",
-                            k.0.holder.email()
+                    }
+                    td {
+                        class: "fingerprint",
+                        input {
+                            "type": "search",
+                            placeholder: "Filter fingerprints",
+                            oninput: move |evt| (*filter.write()).0.fingerprint = evt.value.clone()
                         }
-                        td {
-                            class: "fingerprint",
-                            k.0.fingerprint()
-                        }
-                        td {
-                            if let Some(t) = k.1.verified_time() {
-                                rsx! {
-                                    span {
-                                        title: "Verified {t.date()}",
-                                        Icon {
-                                            width: 15,
-                                            height: 15,
-                                            fill: "#00f",
-                                            icon: GoVerified,
+                    }
+                    td {
+                        class: "actions"
+                    }
+                }
+                for k in their_keys.into_iter() {
+                    if k.0.holder.name().to_lowercase().contains(&filter_name)
+                        && k.0.holder.email().to_lowercase().contains(&filter_email)
+                        && k.0.fingerprint().replace(' ', "").to_lowercase().contains(&filter_fingerprint)
+                    {
+                        rsx! {
+                            tr {
+                                td {
+                                    PublicSignerSelect {
+                                        k: k.0.clone()
+                                    }
+                                }
+                                td {
+                                    class: "name",
+                                    k.0.holder.name()
+                                }
+                                td {
+                                    class: "email",
+                                    k.0.holder.email()
+                                }
+                                td {
+                                    class: "fingerprint",
+                                    k.0.fingerprint()
+                                }
+                                td {
+                                    if let Some(t) = k.1.verified_time() {
+                                        rsx! {
+                                            span {
+                                                title: "Verified {t.date()}",
+                                                Icon {
+                                                    width: 15,
+                                                    height: 15,
+                                                    fill: "#00f",
+                                                    icon: GoVerified,
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -780,8 +1025,6 @@ fn Sign(cx: Scope) -> Element {
                 }
             }
         }
-        br {}
-        SignAndCopy {}
         }
     })
 }
@@ -812,7 +1055,7 @@ fn SignAndCopy(cx: Scope) -> Element {
                     }
                 }
             },
-            "Copy Signed Message to Clipboard"
+            "Sign and Copy to Clipboard"
         }
     })
 }
@@ -971,14 +1214,11 @@ fn Verify(cx: Scope) -> Element {
         cx.render(rsx! {
             div {
                 class: "toolbar",
-                "Hi there!"
+                PasteAndVerify {}
             },
             div {
                 class: "data",
                 div {
-                    PasteAndVerify {}
-                    br {}
-                    br {}
                     VerificationResults {
                         signed_message: signed_message
                     }
@@ -989,13 +1229,10 @@ fn Verify(cx: Scope) -> Element {
         cx.render(rsx! {
             div {
                 class: "toolbar",
-                "Hi there!"
+                PasteAndVerify {}
             },
             div {
                 class: "data",
-                div {
-                    PasteAndVerify {}
-                }
             }
         })
     }
