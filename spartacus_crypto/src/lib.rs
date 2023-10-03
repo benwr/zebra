@@ -76,8 +76,8 @@ impl Signature {
     /// implementation, though I did mainly write it from scratch. However, this may constrain me
     /// to publish this section of code under an MIT license
     fn sign(
-        message: &[u8], // m
-        my_private_value: Scalar, // k_pi
+        message: &[u8],                            // m
+        my_private_value: Scalar,                  // k_pi
         other_public_keypoints: &[RistrettoPoint], // K_i
     ) -> Self {
         // K_pi
@@ -93,7 +93,6 @@ impl Signature {
         let my_key_index = ring
             .binary_search_by_key(&my_public_keypoint.compress(), |k| k.compress())
             .expect("Key just inserted into vec, but missing after sorting.");
-
 
         // initialized to be fake responses r_i
         let mut responses: Vec<Scalar> = (0..ring_size).map(|_| Scalar::random()).collect();
@@ -146,7 +145,7 @@ impl Signature {
             h.update(hash_update.compress());
             reconstructed_challenge = Scalar::from_hash(h);
         }
-        
+
         // c_1 == c_1'
         self.challenge == reconstructed_challenge
     }
@@ -500,7 +499,7 @@ impl SignedMessage {
 (M+5+N)     Joe Camel <cool@tobacco.com> :z6N5iF%x] OZV9Q-p^0C 0c0*l1i0u/ <EgnZFy!44
 (M+5+N+1)
 (M+5+N+2)   9%Kq+rztr@G/UUZwbP>Z7>&V*av.io+RoI^sPb&o0SSi25=.[ils>3Ss7M8-B97#czy[:{B-4D+003E[Cp^?/zdP/q!aTb+yC+&9/L5.?QFe<N&)li1*NhhYPI[LV.AhV!}*:H2!bn+D4UbI41^@[(bwbQo.H-G&Twp7%IWfs-0069?!aTb+yC+&9/L5.?QFe<N&)li1*NhhYPI[LV.Aiwihg7Yu/b[sVh2J10vI*p]H[S*gekCK-Dmz-%@0n2*}o{}4Ieyfk]hs*-j2Bx<pnD&qD0LlxRmz:?5DJgr002SfwGTuGzdNI{0001ez/oCSBz>R%v}fBfv@Dkx=*PEupvK+z::^HobOkJ[Lr%JJ]puzjY<ELiZ7-&[RpE^E2h^OKLus#2kE%Cj7j%m<z=@>!2OE#</y5?y0002S=*PEupvK+z::^HobOkJ[Lr%JJ]puzjY<ELiZ7-*^4/Af&IVi)R2moE@aE(&{@:wiKNF*Rr0q<6G8k4s6L3zuhs!s8N&9nG(NCOYtp$me1aj.^gt$f7w#4*}O
-(M+5+N+3) 
+(M+5+N+3)
 (M+5+N+4) To verify this signature, paste this entire message into the Spartacus app (starting with "The following message" and ending with this line).
 */
 
@@ -514,18 +513,18 @@ impl SignedMessage {
 //
 
 // The first two lines of the message are always the same.
-// 
+//
 // The last two lines are also always the same.
-// 
+//
 // Before that is a single line (guaranteed by the z85 character set) representing the signature.
-// 
+//
 // And before that there is a blank line, preceeded by some number of nonblank lines, each of which
 // contains a name, email, and fingerprint of a key from the ring. None of those fields may contain
 // newlines. This section is in turn preceded by a blank line, which lets us determine its boundaries.
-// 
+//
 // Then there's a fixed string separating the signature section from the message section, letting us
 // determine where the message ends.
-// 
+//
 // And thus, even though the message can contain any number of (unescaped) newlines (or any utf-8
 // text), there is no ambiguity in the message contents, and there is a bijection between our
 // signed-message struct and the (syntax of the) ASCII signed message format.
@@ -550,7 +549,6 @@ const SIGNED_MESSAGE_INFIX_THIRD_LINE: &str =
 const SIGNED_MESSAGE_INFIX_FOURTH_LINE: &str = "";
 const SIGNED_MESSAGE_SUFFIX_FIRST_LINE: &str = "";
 const SIGNED_MESSAGE_SUFFIX_SECOND_LINE: &str = "To verify this signature, paste this entire message into the Spartacus app (starting with \"The following message\" and ending with this line).";
-
 
 impl From<&SignedMessage> for String {
     fn from(m: &SignedMessage) -> String {
@@ -587,7 +585,6 @@ impl From<&SignedMessage> for String {
     }
 }
 
-
 impl FromStr for SignedMessage {
     type Err = ();
     /// IMPORTANT NOTE: Success of this method does *not* imply a valid signature, only a
@@ -596,20 +593,20 @@ impl FromStr for SignedMessage {
         // Here's the same signed message from above, reproduced to make it easier to follow the
         // parsing algorithm:
         /*
-           (0)         The following message has been signed using Spartacus 1.0:
-           (1)         """
-           (2)         Test
-           (M+2)       """
-           (M+3)
-           (M+4)       It was signed by someone with a private key corresponding to one of these fingerprints:
-           (M+5)
-           (M+5+1)     Ben Weinstein-Raun <b@w-r.me> Z:$p&B{etV [J3I^)6^#h +4dJaeg6Q. kn-O]{7[tH
-           (M+5+N)     Joe Camel <cool@tobacco.com> :z6N5iF%x] OZV9Q-p^0C 0c0*l1i0u/ <EgnZFy!44
-           (M+5+N+1)
-           (M+5+N+2)   9%Kq+rztr@G/UUZwbP>Z7>&V*av.io+RoI^sPb&o0SSi25=.[ils>3Ss7M8-B97#czy[:{B-4D+003E[Cp^?/zdP/q!aTb+yC+&9/L5.?QFe<N&)li1*NhhYPI[LV.AhV!}*:H2!bn+D4UbI41^@[(bwbQo.H-G&Twp7%IWfs-0069?!aTb+yC+&9/L5.?QFe<N&)li1*NhhYPI[LV.Aiwihg7Yu/b[sVh2J10vI*p]H[S*gekCK-Dmz-%@0n2*}o{}4Ieyfk]hs*-j2Bx<pnD&qD0LlxRmz:?5DJgr002SfwGTuGzdNI{0001ez/oCSBz>R%v}fBfv@Dkx=*PEupvK+z::^HobOkJ[Lr%JJ]puzjY<ELiZ7-&[RpE^E2h^OKLus#2kE%Cj7j%m<z=@>!2OE#</y5?y0002S=*PEupvK+z::^HobOkJ[Lr%JJ]puzjY<ELiZ7-*^4/Af&IVi)R2moE@aE(&{@:wiKNF*Rr0q<6G8k4s6L3zuhs!s8N&9nG(NCOYtp$me1aj.^gt$f7w#4*}O
-           (M+5+N+3) 
-           (M+5+N+4) To verify this signature, paste this entire message into the Spartacus app (starting with "The following message" and ending with this line).
-         */
+          (0)         The following message has been signed using Spartacus 1.0:
+          (1)         """
+          (2)         Test
+          (M+2)       """
+          (M+3)
+          (M+4)       It was signed by someone with a private key corresponding to one of these fingerprints:
+          (M+5)
+          (M+5+1)     Ben Weinstein-Raun <b@w-r.me> Z:$p&B{etV [J3I^)6^#h +4dJaeg6Q. kn-O]{7[tH
+          (M+5+N)     Joe Camel <cool@tobacco.com> :z6N5iF%x] OZV9Q-p^0C 0c0*l1i0u/ <EgnZFy!44
+          (M+5+N+1)
+          (M+5+N+2)   9%Kq+rztr@G/UUZwbP>Z7>&V*av.io+RoI^sPb&o0SSi25=.[ils>3Ss7M8-B97#czy[:{B-4D+003E[Cp^?/zdP/q!aTb+yC+&9/L5.?QFe<N&)li1*NhhYPI[LV.AhV!}*:H2!bn+D4UbI41^@[(bwbQo.H-G&Twp7%IWfs-0069?!aTb+yC+&9/L5.?QFe<N&)li1*NhhYPI[LV.Aiwihg7Yu/b[sVh2J10vI*p]H[S*gekCK-Dmz-%@0n2*}o{}4Ieyfk]hs*-j2Bx<pnD&qD0LlxRmz:?5DJgr002SfwGTuGzdNI{0001ez/oCSBz>R%v}fBfv@Dkx=*PEupvK+z::^HobOkJ[Lr%JJ]puzjY<ELiZ7-&[RpE^E2h^OKLus#2kE%Cj7j%m<z=@>!2OE#</y5?y0002S=*PEupvK+z::^HobOkJ[Lr%JJ]puzjY<ELiZ7-*^4/Af&IVi)R2moE@aE(&{@:wiKNF*Rr0q<6G8k4s6L3zuhs!s8N&9nG(NCOYtp$me1aj.^gt$f7w#4*}O
+          (M+5+N+3)
+          (M+5+N+4) To verify this signature, paste this entire message into the Spartacus app (starting with "The following message" and ending with this line).
+        */
 
         // This could have been done with regular expressions or a parser library. I intentionally
         // designed the ASCII format to be fairly simple to reason about; my hope is that this
