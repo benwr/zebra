@@ -9,7 +9,7 @@ use dioxus_desktop::{
     WindowBuilder,
 };
 use dioxus_free_icons::{
-    icons::go_icons::{GoCopy, GoSearch, GoTrash, GoUnverified, GoVerified},
+    icons::go_icons::{GoCopy, GoPlusCircle, GoSearch, GoShieldCheck, GoShieldLock, GoTrash, GoUnverified, GoVerified},
     Icon,
 };
 
@@ -614,6 +614,13 @@ fn MyKeys(cx: Scope) -> Element {
         }
         div {
             class: "toolbar",
+            Icon {
+                class: "action_icon",
+                width: 15,
+                height: 15,
+                fill: "black",
+                icon: GoPlusCircle,
+            }
             input {
                 class: "new_key_name_input",
                 value: "{new_private_name_val}",
@@ -736,6 +743,13 @@ fn OtherKeys(cx: Scope) -> Element {
     cx.render(rsx! {
         div {
             class: "toolbar",
+            Icon {
+                class: "action_icon",
+                width: 15,
+                height: 15,
+                fill: "black",
+                icon: GoPlusCircle,
+            }
             button {
                 onclick: move |_| {
                     if let Ok(ref mut db) = dbresult.write().deref_mut() {
@@ -936,6 +950,13 @@ fn Sign(cx: Scope) -> Element {
     cx.render(rsx! {
         div {
             class: "toolbar",
+            Icon {
+                class: "action_icon",
+                width: 15,
+                height: 15,
+                fill: "black",
+                icon: GoShieldLock,
+            }
             SignAndCopy {}
         },
         div {
@@ -1226,6 +1247,13 @@ fn Verify(cx: Scope) -> Element {
         cx.render(rsx! {
             div {
                 class: "toolbar",
+                Icon {
+                    class: "action_icon",
+                    width: 15,
+                    height: 15,
+                    fill: "black",
+                    icon: GoShieldCheck,
+                }
                 PasteAndVerify {}
             },
             div {
@@ -1241,6 +1269,13 @@ fn Verify(cx: Scope) -> Element {
         cx.render(rsx! {
             div {
                 class: "toolbar",
+                Icon {
+                    class: "action_icon",
+                    width: 15,
+                    height: 15,
+                    fill: "black",
+                    icon: GoShieldCheck,
+                }
                 PasteAndVerify {}
             },
             div {

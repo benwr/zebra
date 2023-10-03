@@ -87,7 +87,7 @@ div.contents {
 
 div.toolbar {
   width: 100%;
-  padding: 10px;
+  padding: 20px;
   padding-top: 10px;
   padding-bottom: 6px;
   border-bottom: 1px solid #000;
@@ -173,6 +173,11 @@ textarea.sign_text {
   width: 95%;
   height: 15em;
   resize: none;
+}
+
+.action_icon {
+  position: relative;
+  top: 3px;
 }
 
 .action_button {
