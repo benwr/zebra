@@ -49,6 +49,12 @@ fn make_config() -> dioxus_desktop::Config {
     dioxus_desktop::Config::default().with_window(
         WindowBuilder::new()
             .with_title("Spartacus")
+            .with_min_inner_size(dioxus_desktop::tao::dpi::Size::Logical(
+                dioxus_desktop::tao::dpi::LogicalSize {
+                    width: 900.0,
+                    height: 600.0,
+                },
+            ))
             .with_menu(main_menu),
     )
 }
