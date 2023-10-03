@@ -532,6 +532,13 @@ impl SignedMessage {
 //
 // The shortest possible message is 12 lines, with M = N = 1. (Note that the line numbering above
 // is zero-indexed, so the length is the last line number plus one.
+//
+// One other note: z85 itself does not specify padding behavior (in fact it leaves this up to the
+// application). We are using the `z85` rust crate, which implements a particular padding strategy.
+// This strategy differs from other implementations, and since our z85-encoded signatures aren't
+// necessarily divisible into 4-byte chunks, our protocol relies on the padding implementation in
+// that specific library. The implementation can be seen here:
+// https://github.com/decafbad/z85/blob/ca669a0682b0a559b883f770c93e746f6a7e3ebe/src/internal.rs#L51
 
 const SIGNED_MESSAGE_FIRST_LINE: &'static str =
     "The following message has been signed using Spartacus 1.0:";
