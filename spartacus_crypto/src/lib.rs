@@ -467,7 +467,7 @@ impl SignedMessage {
         }
 
         // 2. Verify the signature itself
-        self.signature().verify(&self.message.as_bytes())
+        self.signature().verify(self.message.as_bytes())
     }
 
     fn signature(&self) -> Signature {
@@ -540,16 +540,16 @@ impl SignedMessage {
 // that specific library. The implementation can be seen here:
 // https://github.com/decafbad/z85/blob/ca669a0682b0a559b883f770c93e746f6a7e3ebe/src/internal.rs#L51
 
-const SIGNED_MESSAGE_FIRST_LINE: &'static str =
+const SIGNED_MESSAGE_FIRST_LINE: &str =
     "The following message has been signed using Spartacus 1.0:";
-const SIGNED_MESSAGE_SECOND_LINE: &'static str = "\"\"\"";
-const SIGNED_MESSAGE_INFIX_FIRST_LINE: &'static str = "\"\"\"";
-const SIGNED_MESSAGE_INFIX_SECOND_LINE: &'static str = "";
-const SIGNED_MESSAGE_INFIX_THIRD_LINE: &'static str =
+const SIGNED_MESSAGE_SECOND_LINE: &str = "\"\"\"";
+const SIGNED_MESSAGE_INFIX_FIRST_LINE: &str = "\"\"\"";
+const SIGNED_MESSAGE_INFIX_SECOND_LINE: &str = "";
+const SIGNED_MESSAGE_INFIX_THIRD_LINE: &str =
     "It was signed by someone with a private key corresponding to one of these fingerprints:";
-const SIGNED_MESSAGE_INFIX_FOURTH_LINE: &'static str = "";
-const SIGNED_MESSAGE_SUFFIX_FIRST_LINE: &'static str = "";
-const SIGNED_MESSAGE_SUFFIX_SECOND_LINE: &'static str = "To verify this signature, paste this entire message into the Spartacus app (starting with \"The following message\" and ending with this line).";
+const SIGNED_MESSAGE_INFIX_FOURTH_LINE: &str = "";
+const SIGNED_MESSAGE_SUFFIX_FIRST_LINE: &str = "";
+const SIGNED_MESSAGE_SUFFIX_SECOND_LINE: &str = "To verify this signature, paste this entire message into the Spartacus app (starting with \"The following message\" and ending with this line).";
 
 
 impl From<&SignedMessage> for String {
@@ -631,7 +631,7 @@ impl FromStr for SignedMessage {
         // lines.len() - 3)
         if lines[lines.len() - 1] != SIGNED_MESSAGE_SUFFIX_SECOND_LINE
             || lines[lines.len() - 2] != SIGNED_MESSAGE_SUFFIX_FIRST_LINE
-            || lines[lines.len() - 4] != ""
+            || !lines[lines.len() - 4].is_empty()
         {
             return Err(());
         }

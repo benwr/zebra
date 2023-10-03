@@ -111,7 +111,7 @@ impl DatabaseContentsV0 {
             public_keys,
         } = self;
         VisibleDatabaseContents {
-            my_public_keys: private_keys.into_iter().map(|k| k.0.clone()).collect(),
+            my_public_keys: private_keys.iter().map(|k| k.0.clone()).collect(),
             their_public_keys: public_keys.clone(),
         }
     }
@@ -227,13 +227,13 @@ impl Database {
         let (contents, _) = Self::get_contents(&self.db_path)?;
         let my_key = contents
             .private_keys
-            .get(&my_key_index)
+            .get(my_key_index)
             .ok_or(std::io::Error::new(
                 std::io::ErrorKind::Other,
                 "Requested nonexistant key",
             ))?
             .clone();
-        Ok(SignedMessage::sign(message, &my_key, &other_keys))
+        Ok(SignedMessage::sign(message, &my_key, other_keys))
     }
 
     pub fn set_verified(&mut self, public_key: &PublicKey) -> std::io::Result<()> {

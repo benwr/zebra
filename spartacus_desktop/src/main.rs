@@ -401,7 +401,7 @@ fn Danger(cx: Scope) -> Element {
                             input {
                                 "type": "search",
                                 placeholder: "Filter names",
-                                oninput: move |evt| (*filter.write()).0.name = evt.value.clone()
+                                oninput: move |evt| (filter.write()).0.name = evt.value.clone()
                             }
                         }
                         td {
@@ -409,7 +409,7 @@ fn Danger(cx: Scope) -> Element {
                             input {
                                 "type": "search",
                                 placeholder: "Filter emails",
-                                oninput: move |evt| (*filter.write()).0.email = evt.value.clone()
+                                oninput: move |evt| (filter.write()).0.email = evt.value.clone()
                             }
                         }
                         td {
@@ -417,7 +417,7 @@ fn Danger(cx: Scope) -> Element {
                             input {
                                 "type": "search",
                                 placeholder: "Filter fingerprints",
-                                oninput: move |evt| (*filter.write()).0.fingerprint = evt.value.clone()
+                                oninput: move |evt| (filter.write()).0.fingerprint = evt.value.clone()
                             }
                         }
                         td {
@@ -565,7 +565,7 @@ fn MyKeys(cx: Scope) -> Element {
                             input {
                                 "type": "search",
                                 placeholder: "Filter names",
-                                oninput: move |evt| (*filter.write()).0.name = evt.value.clone()
+                                oninput: move |evt| (filter.write()).0.name = evt.value.clone()
                             }
                         }
                         td {
@@ -573,7 +573,7 @@ fn MyKeys(cx: Scope) -> Element {
                             input {
                                 "type": "search",
                                 placeholder: "Filter emails",
-                                oninput: move |evt| (*filter.write()).0.email = evt.value.clone()
+                                oninput: move |evt| (filter.write()).0.email = evt.value.clone()
                             }
                         }
                         td {
@@ -581,7 +581,7 @@ fn MyKeys(cx: Scope) -> Element {
                             input {
                                 "type": "search",
                                 placeholder: "Filter fingerprints",
-                                oninput: move |evt| (*filter.write()).0.fingerprint = evt.value.clone()
+                                oninput: move |evt| (filter.write()).0.fingerprint = evt.value.clone()
                             }
                         }
                         td {
@@ -669,7 +669,7 @@ fn OtherKeys(cx: Scope) -> Element {
                             if let Ok(contents) = ctx.get_contents() {
                                 let mut to_import = vec![];
                                 for line in contents.split('\n') {
-                                    if let Ok(key) = PublicKey::from_str(&line) {
+                                    if let Ok(key) = PublicKey::from_str(line) {
                                         to_import.push(key)
                                     } else {
                                         return;
@@ -710,7 +710,7 @@ fn OtherKeys(cx: Scope) -> Element {
                             input {
                                 "type": "search",
                                 placeholder: "Filter names",
-                                oninput: move |evt| (*filter.write()).0.name = evt.value.clone()
+                                oninput: move |evt| (filter.write()).0.name = evt.value.clone()
                             }
                         }
                         td {
@@ -718,7 +718,7 @@ fn OtherKeys(cx: Scope) -> Element {
                             input {
                                 "type": "search",
                                 placeholder: "Filter emails",
-                                oninput: move |evt| (*filter.write()).0.email = evt.value.clone()
+                                oninput: move |evt| (filter.write()).0.email = evt.value.clone()
                             }
                         }
                         td {
@@ -726,7 +726,7 @@ fn OtherKeys(cx: Scope) -> Element {
                             input {
                                 "type": "search",
                                 placeholder: "Filter fingerprints",
-                                oninput: move |evt| (*filter.write()).0.fingerprint = evt.value.clone()
+                                oninput: move |evt| (filter.write()).0.fingerprint = evt.value.clone()
                             }
                         }
                         td {
@@ -945,7 +945,7 @@ fn Sign(cx: Scope) -> Element {
                         input {
                             "type": "search",
                             placeholder: "Filter names",
-                            oninput: move |evt| (*filter.write()).0.name = evt.value.clone()
+                            oninput: move |evt| (filter.write()).0.name = evt.value.clone()
                         }
                     }
                     td {
@@ -953,7 +953,7 @@ fn Sign(cx: Scope) -> Element {
                         input {
                             "type": "search",
                             placeholder: "Filter emails",
-                            oninput: move |evt| (*filter.write()).0.email = evt.value.clone()
+                            oninput: move |evt| (filter.write()).0.email = evt.value.clone()
                         }
                     }
                     td {
@@ -961,7 +961,7 @@ fn Sign(cx: Scope) -> Element {
                         input {
                             "type": "search",
                             placeholder: "Filter fingerprints",
-                            oninput: move |evt| (*filter.write()).0.fingerprint = evt.value.clone()
+                            oninput: move |evt| (filter.write()).0.fingerprint = evt.value.clone()
                         }
                     }
                     td {
@@ -1037,7 +1037,7 @@ fn SignAndCopy(cx: Scope) -> Element {
                 if let Ok(ref mut db) = dbresult.write().deref_mut() {
                     if let Ok(mut ctx) = ClipboardContext::new() {
                         if let Some(k) = &k {
-                            if let Ok(signed_message) = db.sign(&text_to_sign_val, &k, &current_signers) {
+                            if let Ok(signed_message) = db.sign(&text_to_sign_val, k, &current_signers) {
                                 let _ = ctx.set_contents(String::from(&signed_message));
                             }
                         }
@@ -1088,7 +1088,7 @@ fn VerificationResults(cx: Scope<VerificationResultsProps>) -> Element {
     let mut all_known = true;
     let mut all_verified = true;
     for pubkey in cx.props.signed_message.ring() {
-        if !my_keys.contains(&pubkey) {
+        if !my_keys.contains(pubkey) {
             match known_keys.get(pubkey) {
                 None => {
                     all_known = false;
@@ -1152,7 +1152,7 @@ fn VerificationResults(cx: Scope<VerificationResultsProps>) -> Element {
                                 "{pubkey.fingerprint()}"
                             }
                             td {
-                                if my_keys.contains(&pubkey) || known_keys.get(&pubkey).map(|v| v.is_verified()).unwrap_or(false) {
+                                if my_keys.contains(pubkey) || known_keys.get(pubkey).map(|v| v.is_verified()).unwrap_or(false) {
                                     rsx!{
                                         span {
                                             title: "Key is verified",
@@ -1164,7 +1164,7 @@ fn VerificationResults(cx: Scope<VerificationResultsProps>) -> Element {
                                             }
                                         }
                                     }
-                                } else if my_keys.contains(&pubkey) || known_keys.contains_key(&pubkey) {
+                                } else if my_keys.contains(pubkey) || known_keys.contains_key(pubkey) {
                                     rsx!{
                                         span {
                                             title: "Key is known but unverified",
