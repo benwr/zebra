@@ -9,11 +9,6 @@ pub fn About(cx: Scope) -> Element {
             h1 {"Spartacus"}
             p {"Version 1.0.0-alpha"}
             p {"A tool for creating and verifying ring signatures."}
-            img {
-                src: "/spartacus_desktop/spartacus_head.png",
-                height: "256px",
-                width: "256px",
-            }
             p {
                 class: "copyright_info",
                 "App Logo adapted from "

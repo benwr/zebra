@@ -97,6 +97,22 @@ div.toolbar input, div.toolbar button {
   margin: 1em;
 }
 
+input, button {
+  font-size: 14px;
+}
+
+.search_icon {
+  margin: 5px;
+  position: relative;
+  top: 9px;
+}
+
+.filter_row td {
+  white-space: nowrap;
+  padding-bottom: 15px;
+}
+
+
 div.about {
   text-align: center;
   padding: 1.5em;
@@ -118,12 +134,18 @@ td {
   padding: 4px;
 }
 
+th {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
 td.fingerprint {
   font-family: monospace;
   text-align: center;
   padding-left: 1em;
   padding-right: 1em;
   width: 18em;
+  word-break: keep-all;
 }
 
 td.name {
@@ -136,7 +158,7 @@ td.email {
 }
 
 td.actions {
-  text-align: right;
+  text-align: center;
 }
 
 td.delete {
@@ -144,7 +166,7 @@ td.delete {
 }
 
 p.copyright_info {
-  font-size: 12px;
+  font-size: 16px;
 }
 
 textarea.sign_text {

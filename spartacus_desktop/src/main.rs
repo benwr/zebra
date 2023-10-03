@@ -9,7 +9,7 @@ use dioxus_desktop::{
     WindowBuilder,
 };
 use dioxus_free_icons::{
-    icons::go_icons::{GoCopy, GoTrash, GoUnverified, GoVerified},
+    icons::go_icons::{GoCopy, GoSearch, GoTrash, GoUnverified, GoVerified},
     Icon,
 };
 
@@ -73,22 +73,86 @@ enum ActiveTab {
     Danger,
 }
 
-struct TableFilter {
-    name: String,
-    email: String,
-    fingerprint: String,
-}
-
 struct NewPrivateName(String);
 struct NewPrivateEmail(PrintableAsciiString);
 struct TextToSign(String);
 struct MessageToVerify(Option<SignedMessage>);
 struct SelectedPrivateSigner(Option<PublicKey>);
 struct SelectedPublicSigners(BTreeSet<PublicKey>);
+
+#[derive(Clone)]
+struct TableFilter {
+    name: String,
+    email: String,
+    fingerprint: String,
+}
+
 struct PrivateFilter(TableFilter);
 struct PublicFilter(TableFilter);
 struct SignerFilter(TableFilter);
 struct DangerFilter(TableFilter);
+
+trait Filter {
+    fn set_name(&mut self, name: &str);
+    fn set_email(&mut self, email: &str);
+    fn set_fingerprint(&mut self, fingerprint: &str);
+}
+
+impl Filter for PrivateFilter {
+    fn set_name(&mut self, name: &str) {
+        self.0.name = name.to_string();
+    }
+
+    fn set_email(&mut self, email: &str) {
+        self.0.email = email.to_string();
+    }
+
+    fn set_fingerprint(&mut self, fingerprint: &str) {
+        self.0.fingerprint = fingerprint.to_string();
+    }
+}
+
+impl Filter for PublicFilter {
+    fn set_name(&mut self, name: &str) {
+        self.0.name = name.to_string();
+    }
+
+    fn set_email(&mut self, email: &str) {
+        self.0.email = email.to_string();
+    }
+
+    fn set_fingerprint(&mut self, fingerprint: &str) {
+        self.0.fingerprint = fingerprint.to_string();
+    }
+}
+
+impl Filter for SignerFilter {
+    fn set_name(&mut self, name: &str) {
+        self.0.name = name.to_string();
+    }
+
+    fn set_email(&mut self, email: &str) {
+        self.0.email = email.to_string();
+    }
+
+    fn set_fingerprint(&mut self, fingerprint: &str) {
+        self.0.fingerprint = fingerprint.to_string();
+    }
+}
+
+impl Filter for DangerFilter {
+    fn set_name(&mut self, name: &str) {
+        self.0.name = name.to_string();
+    }
+
+    fn set_email(&mut self, email: &str) {
+        self.0.email = email.to_string();
+    }
+
+    fn set_fingerprint(&mut self, fingerprint: &str) {
+        self.0.fingerprint = fingerprint.to_string();
+    }
+}
 
 fn App(cx: Scope) -> Element {
     let desktop = dioxus_desktop::use_window(cx);
@@ -352,6 +416,64 @@ fn VerifyButton(cx: Scope<VerifyButtonProps>) -> Element {
     }
 }
 
+fn FilterRow<T: Filter + 'static>(cx: Scope) -> Element {
+    let filter = use_shared_state::<T>(cx).unwrap();
+
+    cx.render(rsx! {
+        tr {
+            class: "filter_row",
+            td {
+                class: "name",
+                input {
+                    "type": "text",
+                    placeholder: "Filter names",
+                    oninput: move |evt| filter.write().set_name(&evt.value)
+                }
+                Icon {
+                    class: "search_icon",
+                    width: 16,
+                    height: 16,
+                    fill: "black",
+                    icon: GoSearch,
+                }
+            }
+            td {
+                class: "email",
+                input {
+                    "type": "text",
+                    placeholder: "Filter emails",
+                    oninput: move |evt| filter.write().set_email(&evt.value)
+                }
+                Icon {
+                    class: "search_icon",
+                    width: 16,
+                    height: 16,
+                    fill: "black",
+                    icon: GoSearch,
+                }
+            }
+            td {
+                class: "fingerprint",
+                input {
+                    "type": "text",
+                    placeholder: "Filter fingerprints",
+                    oninput: move |evt| filter.write().set_fingerprint(&evt.value)
+                }
+                Icon {
+                    class: "search_icon",
+                    width: 16,
+                    height: 16,
+                    fill: "black",
+                    icon: GoSearch,
+                }
+            }
+            td {
+                class: "delete"
+            }
+        }
+    })
+}
+
 fn Danger(cx: Scope) -> Element {
     let dbresult = use_shared_state::<std::io::Result<Database>>(cx).unwrap();
     let dbread = dbresult.read();
@@ -379,6 +501,9 @@ fn Danger(cx: Scope) -> Element {
             table {
                 class: "mykeys",
                 thead {
+                    FilterRow::<DangerFilter> {}
+                }
+                thead {
                     tr {
                         th {
                             "Name"
@@ -395,35 +520,6 @@ fn Danger(cx: Scope) -> Element {
                     }
                 }
                 tbody {
-                    tr {
-                        td {
-                            class: "name",
-                            input {
-                                "type": "search",
-                                placeholder: "Filter names",
-                                oninput: move |evt| (filter.write()).0.name = evt.value.clone()
-                            }
-                        }
-                        td {
-                            class: "email",
-                            input {
-                                "type": "search",
-                                placeholder: "Filter emails",
-                                oninput: move |evt| (filter.write()).0.email = evt.value.clone()
-                            }
-                        }
-                        td {
-                            class: "fingerprint",
-                            input {
-                                "type": "search",
-                                placeholder: "Filter fingerprints",
-                                oninput: move |evt| (filter.write()).0.fingerprint = evt.value.clone()
-                            }
-                        }
-                        td {
-                            class: "delete"
-                        }
-                    }
                     for k in keys.into_iter() {
                         if k.holder().name().to_lowercase().contains(&filter_name)
                             && k.holder().email().to_lowercase().contains(&filter_email)
@@ -535,7 +631,7 @@ fn MyKeys(cx: Scope) -> Element {
             input {
                 "type": "submit",
                 form: new_key_form_id,
-                value: "Create New Keypair"
+                value: "Create New Keypair",
             }
         }
         div {
@@ -559,35 +655,7 @@ fn MyKeys(cx: Scope) -> Element {
                     }
                 }
                 tbody {
-                    tr {
-                        td {
-                            class: "name",
-                            input {
-                                "type": "search",
-                                placeholder: "Filter names",
-                                oninput: move |evt| (filter.write()).0.name = evt.value.clone()
-                            }
-                        }
-                        td {
-                            class: "email",
-                            input {
-                                "type": "search",
-                                placeholder: "Filter emails",
-                                oninput: move |evt| (filter.write()).0.email = evt.value.clone()
-                            }
-                        }
-                        td {
-                            class: "fingerprint",
-                            input {
-                                "type": "search",
-                                placeholder: "Filter fingerprints",
-                                oninput: move |evt| (filter.write()).0.fingerprint = evt.value.clone()
-                            }
-                        }
-                        td {
-                            class: "actions"
-                        }
-                    }
+                    FilterRow::<PrivateFilter> {}
                     for k in keys.into_iter() {
                         if k.holder().name().to_lowercase().contains(&filter_name)
                             && k.holder().email().to_lowercase().contains(&filter_email)
@@ -680,7 +748,7 @@ fn OtherKeys(cx: Scope) -> Element {
                         }
                     }
                 },
-                "Import Pulic Key from Clipboard"
+                "Import Public Key from Clipboard"
             }
         },
         div {
@@ -704,35 +772,7 @@ fn OtherKeys(cx: Scope) -> Element {
                     }
                 }
                 tbody {
-                    tr {
-                        td {
-                            class: "name",
-                            input {
-                                "type": "search",
-                                placeholder: "Filter names",
-                                oninput: move |evt| (filter.write()).0.name = evt.value.clone()
-                            }
-                        }
-                        td {
-                            class: "email",
-                            input {
-                                "type": "search",
-                                placeholder: "Filter emails",
-                                oninput: move |evt| (filter.write()).0.email = evt.value.clone()
-                            }
-                        }
-                        td {
-                            class: "fingerprint",
-                            input {
-                                "type": "search",
-                                placeholder: "Filter fingerprints",
-                                oninput: move |evt| (filter.write()).0.fingerprint = evt.value.clone()
-                            }
-                        }
-                        td {
-                            class: "actions"
-                        }
-                    }
+                    FilterRow::<PublicFilter> {}
                     for k in keys.into_iter() {
                         if k.0.holder().name().to_lowercase().contains(&filter_name)
                             && k.0.holder().email().to_lowercase().contains(&filter_email)
@@ -920,9 +960,6 @@ fn Sign(cx: Scope) -> Element {
             thead {
                 tr {
                     th {
-                        "Include"
-                    }
-                    th {
                         "Name"
                     }
                     th {
@@ -934,40 +971,13 @@ fn Sign(cx: Scope) -> Element {
                     th {
                         "Verified?"
                     }
+                    th {
+                        "Include"
+                    }
                 }
             }
             tbody {
-                tr {
-                    td {
-                    }
-                    td {
-                        class: "name",
-                        input {
-                            "type": "search",
-                            placeholder: "Filter names",
-                            oninput: move |evt| (filter.write()).0.name = evt.value.clone()
-                        }
-                    }
-                    td {
-                        class: "email",
-                        input {
-                            "type": "search",
-                            placeholder: "Filter emails",
-                            oninput: move |evt| (filter.write()).0.email = evt.value.clone()
-                        }
-                    }
-                    td {
-                        class: "fingerprint",
-                        input {
-                            "type": "search",
-                            placeholder: "Filter fingerprints",
-                            oninput: move |evt| (filter.write()).0.fingerprint = evt.value.clone()
-                        }
-                    }
-                    td {
-                        class: "actions"
-                    }
-                }
+                FilterRow::<SignerFilter> {}
                 for k in their_keys.into_iter() {
                     if k.0.holder().name().to_lowercase().contains(&filter_name)
                         && k.0.holder().email().to_lowercase().contains(&filter_email)
@@ -976,11 +986,6 @@ fn Sign(cx: Scope) -> Element {
                         rsx! {
                             tr {
                                 key: "{k.0.fingerprint()}",
-                                td {
-                                    PublicSignerSelect {
-                                        k: k.0.clone()
-                                    }
-                                }
                                 td {
                                     class: "name",
                                     k.0.holder().name()
@@ -994,6 +999,7 @@ fn Sign(cx: Scope) -> Element {
                                     k.0.fingerprint()
                                 }
                                 td {
+                                    class: "actions",
                                     if let Some(t) = k.1.verified_time() {
                                         rsx! {
                                             span {
@@ -1006,6 +1012,12 @@ fn Sign(cx: Scope) -> Element {
                                                 }
                                             }
                                         }
+                                    }
+                                }
+                                td {
+                                    class: "actions",
+                                    PublicSignerSelect {
+                                        k: k.0.clone()
                                     }
                                 }
                             }
@@ -1143,15 +1155,19 @@ fn VerificationResults(cx: Scope<VerificationResultsProps>) -> Element {
                         tr {
                             key: "{pubkey.fingerprint()}",
                             td {
+                                class: "name",
                                 "{pubkey.holder().name()}"
                             }
                             td {
+                                class: "email",
                                 "{pubkey.holder().email()}"
                             }
                             td {
+                                class: "fingerprint",
                                 "{pubkey.fingerprint()}"
                             }
                             td {
+                                class: "actions",
                                 if my_keys.contains(pubkey) || known_keys.get(pubkey).map(|v| v.is_verified()).unwrap_or(false) {
                                     rsx!{
                                         span {
