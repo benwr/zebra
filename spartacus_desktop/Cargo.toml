@@ -24,5 +24,7 @@ spartacus_crypto.workspace = true
 spartacus_storage.workspace = true
 
 [package.metadata.bundle]
+name = "Spartacus"
 identifier = "me.w-r.Spartacus"
 icon = ["spartacus_head.png"]
+category = "public.app-category.utilities"

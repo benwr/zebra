@@ -329,6 +329,13 @@ fn get_username() -> String {
     result
 }
 
+// On Linux, it's important that this uses the SecretService backend, since the keyutils storage
+// system doesn't allow for indefinite key storage. Fortunately the SecretService backend is the
+// default (and I think is selected at compile time rather than runtime, based on feature flags,
+// but I'm less sure about that; TODO). It would really suck to have this set up on linux and then
+// keyutils just... forgets your encryption key. Not cool. Not sure what to do in that case other
+// than crash or show an error indicating that we only support running under a desktop environment
+// with a secret service api implementation.
 #[cfg(all(not(target_os = "android"), not(feature = "debug")))]
 fn get_or_create_db_key() -> std::io::Result<SecretString> {
     let entry = match keyring::Entry::new(SERVICE_NAME, &get_username()) {
