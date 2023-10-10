@@ -15,7 +15,7 @@ use dioxus_free_icons::{
 
 use copypasta::{ClipboardContext, ClipboardProvider};
 
-use printable_ascii::PrintableAsciiString;
+use boringascii::BoringAscii;
 use spartacus::about::About;
 use spartacus_crypto::{PublicKey, SignedMessage};
 use spartacus_storage::{default_db_path, Database, VerificationInfo};
@@ -80,7 +80,7 @@ enum ActiveTab {
 }
 
 struct NewPrivateName(String);
-struct NewPrivateEmail(PrintableAsciiString);
+struct NewPrivateEmail(BoringAscii);
 struct TextToSign(String);
 struct MessageToVerify(Option<SignedMessage>);
 struct SelectedPrivateSigner(Option<PublicKey>);
@@ -166,7 +166,7 @@ fn App(cx: Scope) -> Element {
 
     use_shared_state_provider(cx, || ActiveTab::MyKeys);
     use_shared_state_provider(cx, || NewPrivateName(String::new()));
-    use_shared_state_provider(cx, || NewPrivateEmail(PrintableAsciiString::default()));
+    use_shared_state_provider(cx, || NewPrivateEmail(BoringAscii::default()));
     use_shared_state_provider(cx, || TextToSign(String::new()));
     use_shared_state_provider(cx, || MessageToVerify(None));
     use_shared_state_provider(cx, || SelectedPublicSigners(BTreeSet::new()));
@@ -595,10 +595,10 @@ fn MyKeys(cx: Scope) -> Element {
             onsubmit: move |_| {
                 match dbresult.write().deref_mut() {
                     Ok(ref mut db) => {
-                        if let Ok(email) = PrintableAsciiString::from_str(&new_private_email_copy) {
+                        if let Ok(email) = BoringAscii::from_str(&new_private_email_copy) {
                             if let Ok(()) = db.new_private_key(&new_private_name_copy, &email) {
                                 *new_private_name.write() = NewPrivateName("".to_string());
-                                *new_private_email.write() = NewPrivateEmail(PrintableAsciiString::default());
+                                *new_private_email.write() = NewPrivateEmail(BoringAscii::default());
                                 let mut selected_private_signer_write = selected_private_signer.write();
                                 if selected_private_signer_write.deref().0.is_none() {
                                     *selected_private_signer_write = SelectedPrivateSigner(db.visible_contents.my_public_keys.iter().next().cloned());
@@ -634,7 +634,7 @@ fn MyKeys(cx: Scope) -> Element {
                 placeholder: "New Key Email",
                 form: new_key_form_id,
                 oninput: move |evt| {
-                    if let Ok(new) = PrintableAsciiString::from_str(&evt.value) {
+                    if let Ok(new) = BoringAscii::from_str(&evt.value) {
                         *new_private_email.write() = NewPrivateEmail(new)
                     } else {
                         *new_private_email.write() = NewPrivateEmail(new_private_email_val.clone())

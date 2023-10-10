@@ -19,7 +19,8 @@ dioxus-desktop = "0.4.0"
 dioxus-free-icons = {version = "0.7.0", features = ["octicons"]}
 secmem-proc = "0.3"
 
-printable_ascii.workspace = true
+boringascii.workspace = true
+
 spartacus_crypto.workspace = true
 spartacus_storage.workspace = true
 

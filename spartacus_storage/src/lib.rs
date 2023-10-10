@@ -1,15 +1,22 @@
+mod dbfile_utils;
+mod keyring_utils;
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{File, OpenOptions};
 use std::path::{Path, PathBuf};
 
 use age::secrecy::SecretString;
 use borsh::{BorshDeserialize, BorshSerialize};
-use directories::ProjectDirs;
 use fs2::FileExt;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
-use printable_ascii::PrintableAsciiString;
+use boringascii::BoringAscii;
 use spartacus_crypto::{Identity, PrivateKey, PublicKey, SignedMessage};
+
+use crate::dbfile_utils::lockfile_path;
+use crate::keyring_utils::get_or_create_db_key;
+
+pub use crate::dbfile_utils::default_db_path;
 
 // Databases will be "human-sized", i.e. almost always have less than 100 private keys and less
 // than 10,000 public keys. A typical public key has <80 bytes for the identity (depending on the
@@ -34,8 +41,6 @@ use spartacus_crypto::{Identity, PrivateKey, PublicKey, SignedMessage};
 //
 // We also aim to have all secret types annotated with Zeroize and ZeroizeOnDrop instances, which
 // should ensure that we don't leak sensitive info in core dumps or swap.
-
-const SERVICE_NAME: &str = "Spartacus";
 
 pub struct Database {
     db_path: PathBuf,
@@ -272,7 +277,7 @@ impl Database {
     pub fn new_private_key(
         &mut self,
         name: &str,
-        email: &PrintableAsciiString,
+        email: &BoringAscii,
     ) -> std::io::Result<()> {
         let identity = Identity::new(name, email).ok_or(std::io::Error::new(
             std::io::ErrorKind::Other,
@@ -307,86 +312,3 @@ impl Database {
     }
 }
 
-fn app_dir() -> PathBuf {
-    if let Some(proj_dirs) = ProjectDirs::from("me", "w-r", SERVICE_NAME) {
-        proj_dirs.data_local_dir().to_path_buf()
-    } else {
-        PathBuf::new()
-    }
-}
-
-#[cfg(not(feature = "debug"))]
-pub fn default_db_path() -> PathBuf {
-    app_dir().join("spartacus_db.age")
-}
-
-#[cfg(all(not(target_os = "android"), not(feature = "debug")))]
-fn get_username() -> String {
-    let mut result = whoami::username();
-    if result.is_empty() {
-        result = "spartacus_user".to_string();
-    }
-    result
-}
-
-// On Linux, it's important that this uses the SecretService backend, since the keyutils storage
-// system doesn't allow for indefinite key storage. Fortunately the SecretService backend is the
-// default (and I think is selected at compile time rather than runtime, based on feature flags,
-// but I'm less sure about that; TODO). It would really suck to have this set up on linux and then
-// keyutils just... forgets your encryption key. Not cool. Not sure what to do in that case other
-// than crash or show an error indicating that we only support running under a desktop environment
-// with a secret service api implementation.
-#[cfg(all(not(target_os = "android"), not(feature = "debug")))]
-fn get_or_create_db_key() -> std::io::Result<SecretString> {
-    let entry = match keyring::Entry::new(SERVICE_NAME, &get_username()) {
-        Ok(entry) => entry,
-        Err(e) => {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                e.to_string(),
-            ))
-        }
-    };
-    match entry.get_password() {
-        Ok(pw) => Ok(SecretString::new(pw)),
-        Err(keyring::error::Error::NoEntry) => {
-            use rand::distributions::DistString;
-            let pw = rand::distributions::Alphanumeric.sample_string(&mut rand::rngs::OsRng, 32);
-            match entry.set_password(&pw) {
-                Ok(()) => Ok(SecretString::new(pw)),
-                Err(e) => Err(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    e.to_string(),
-                )),
-            }
-        }
-        Err(e) => Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            e.to_string(),
-        )),
-    }
-}
-// NOTE: If keyring ever supports the android keystore, we should (carefully!) update this.
-// See https://github.com/hwchen/keyring-rs/issues/127 ; it looks like if this is implemented it
-// might just store the file in app storage, which defeats the purpose in our case.
-#[cfg(any(target_os = "android", feature = "debug"))]
-fn get_or_create_db_key() -> std::io::Result<SecretString> {
-    Ok(SecretString::new("".to_string()))
-}
-
-#[cfg(feature = "debug")]
-pub fn default_db_path() -> PathBuf {
-    app_dir().join("spartacus_debug_db.age")
-}
-
-fn lockfile_path<P: AsRef<Path>>(p: &P) -> PathBuf {
-    p.as_ref().with_extension("lock")
-}
-
-#[cfg(test)]
-mod tests {
-    // use super::*;
-
-    #[test]
-    fn it_works() {}
-}

@@ -9,7 +9,7 @@ debug = []
 
 [dependencies]
 spartacus_crypto.workspace = true
-printable_ascii.workspace = true
+boringascii.workspace = true
 
 age.workspace = true
 borsh.workspace = true

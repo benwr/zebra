@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 borsh.workspace = true
-printable_ascii.workspace = true
+boringascii.workspace = true
 
 rand.workspace = true
 zeroize.workspace = true

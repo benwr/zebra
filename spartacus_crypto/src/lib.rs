@@ -5,7 +5,7 @@ use ristretto::{RistrettoPoint, Scalar};
 use std::str::FromStr;
 
 use borsh::{BorshDeserialize, BorshSerialize};
-use printable_ascii::PrintableAsciiString;
+use boringascii::BoringAscii;
 use sha3::{Digest, Sha3_256, Sha3_512};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
@@ -165,7 +165,7 @@ impl Signature {
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Zeroize, ZeroizeOnDrop, BorshSerialize)]
 pub struct Identity {
     name: String,
-    email: PrintableAsciiString,
+    email: BoringAscii,
 }
 
 impl Identity {
@@ -175,7 +175,7 @@ impl Identity {
         }
         Some(Self {
             name: name.to_string(),
-            email: PrintableAsciiString::from_str(email).ok()?,
+            email: BoringAscii::from_str(email).ok()?,
         })
     }
 
@@ -211,7 +211,7 @@ impl Identity {
 impl BorshDeserialize for Identity {
     fn deserialize_reader<R: std::io::Read>(r: &mut R) -> std::io::Result<Identity> {
         let name = String::deserialize_reader(r)?;
-        let email = PrintableAsciiString::deserialize_reader(r)?;
+        let email = BoringAscii::deserialize_reader(r)?;
         Identity::new(&name, email.as_str()).ok_or(std::io::Error::new(
             std::io::ErrorKind::Other,
             "Error constructing Identity",
@@ -725,12 +725,12 @@ mod tests {
     #[test]
     fn full_signatures_work() {
         let message = "SPARTACVSSVM";
-        let my_email = PrintableAsciiString::from_bytes(b"spartacus@example.com").unwrap();
+        let my_email = BoringAscii::from_bytes(b"spartacus@example.com").unwrap();
         let my_name = "Spartacus";
         let my_id = Identity::new(my_name, &my_email).unwrap();
         let my_key = PrivateKey::new(my_id.clone());
 
-        let other_email = PrintableAsciiString::from_bytes(b"notspartacus@example.com").unwrap();
+        let other_email = BoringAscii::from_bytes(b"notspartacus@example.com").unwrap();
         let other_name = "Gaius";
         let other_id = Identity::new(other_name, &other_email).unwrap();
         let other_key = PrivateKey::new(other_id.clone());
@@ -746,7 +746,7 @@ mod tests {
 
     #[test]
     fn export_and_import_work() {
-        let my_email = PrintableAsciiString::from_bytes(b"spartacus@example.com").unwrap();
+        let my_email = BoringAscii::from_bytes(b"spartacus@example.com").unwrap();
         let my_name = "Spartacus";
         let my_id = Identity::new(my_name, &my_email).unwrap();
         let my_key = PrivateKey::new(my_id.clone());
@@ -766,12 +766,12 @@ mod tests {
     #[test]
     fn serialization_of_signed_message() {
         let message = "SPARTACVSSVM";
-        let my_email = PrintableAsciiString::from_bytes(b"spartacus@example.com").unwrap();
+        let my_email = BoringAscii::from_bytes(b"spartacus@example.com").unwrap();
         let my_name = "Spartacus";
         let my_id = Identity::new(my_name, &my_email).unwrap();
         let my_key = PrivateKey::new(my_id.clone());
 
-        let other_email = PrintableAsciiString::from_bytes(b"notspartacus@example.com").unwrap();
+        let other_email = BoringAscii::from_bytes(b"notspartacus@example.com").unwrap();
         let other_name = "Gaius";
         let other_id = Identity::new(other_name, &other_email).unwrap();
         let other_key = PrivateKey::new(other_id.clone());

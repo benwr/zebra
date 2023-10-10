@@ -6,11 +6,11 @@ version = 3
 name = "Spartacus"
 version = "1.0.0-alpha"
 dependencies = [
+ "boringascii",
  "copypasta",
  "dioxus",
  "dioxus-desktop",
  "dioxus-free-icons",
- "printable_ascii",
  "secmem-proc",
  "spartacus_crypto",
  "spartacus_storage",
@@ -365,6 +365,14 @@ dependencies = [
  "futures-lite",
  "piper",
  "tracing",
+]
+
+[[package]]
+name = "boringascii"
+version = "0.0.0"
+dependencies = [
+ "borsh",
+ "zeroize",
 ]
 
 [[package]]
@@ -2839,14 +2847,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "925383efa346730478fb4838dbe9137d2a47675ad789c546d150a6e1dd4ab31c"
 
 [[package]]
-name = "printable_ascii"
-version = "0.0.0"
-dependencies = [
- "borsh",
- "zeroize",
-]
-
-[[package]]
 name = "proc-macro-crate"
 version = "1.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3525,13 +3525,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "spartacus_cli"
+version = "0.1.0"
+
+[[package]]
 name = "spartacus_crypto"
 version = "0.0.0"
 dependencies = [
+ "boringascii",
  "borsh",
  "curve25519-dalek 4.1.1",
  "hex",
- "printable_ascii",
  "rand 0.8.5",
  "regex",
  "sha3",
@@ -3544,12 +3548,12 @@ name = "spartacus_storage"
 version = "0.0.0"
 dependencies = [
  "age",
+ "boringascii",
  "borsh",
  "directories",
  "fs2",
  "keyring",
  "ouroboros",
- "printable_ascii",
  "rand 0.8.5",
  "spartacus_crypto",
  "tempfile",

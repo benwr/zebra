@@ -2,10 +2,11 @@
 
 resolver = "2"
 members = [
+  "spartacus_cli",
   "spartacus_crypto",
   "spartacus_desktop",
   "spartacus_storage",
-  "printable_ascii",
+  "boringascii",
 ]
 
 [workspace.package]
@@ -15,7 +16,8 @@ license = ""
 repository = "https://github.com/benwr/spartacus"
 
 [workspace.dependencies]
-printable_ascii = { path = "printable_ascii" }
+boringascii = { path = "boringascii" }
+
 spartacus_crypto = { path = "spartacus_crypto" }
 spartacus_storage = { path = "spartacus_storage" }
 
