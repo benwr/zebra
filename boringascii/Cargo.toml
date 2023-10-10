@@ -1,0 +1,12 @@
+[package]
+name = "boringascii"
+version = "1.0.0"
+edition = "2021"
+authors.workspace = true
+description = "Strings that can only be constructed to contain non-whitespace, non-control ASCII characters."
+license = "Apache-2.0 OR CC0-1.0"
+repository = "https://github.com/benwr/spartacus"
+
+[dependencies]
+borsh.workspace = true
+zeroize.workspace = true
