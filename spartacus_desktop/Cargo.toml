@@ -13,7 +13,7 @@ name = "Spartacus"
 path = "src/main.rs"
 
 [dependencies]
-copypasta = "0.8"
+copypasta = "0.10"
 dioxus = "0.4.0"
 dioxus-desktop = "0.4.0"
 dioxus-free-icons = {version = "0.7.0", features = ["octicons"]}
