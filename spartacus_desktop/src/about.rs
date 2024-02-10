@@ -2,8 +2,8 @@
 
 use dioxus::prelude::*;
 
-pub fn About(cx: Scope) -> Element {
-    cx.render(rsx! {
+pub fn About() -> Element {
+    rsx! {
         div {
             class: "about",
             h1 {"Spartacus"}
@@ -31,5 +31,5 @@ pub fn About(cx: Scope) -> Element {
                 }
             }
         }
-    })
+    }
 }

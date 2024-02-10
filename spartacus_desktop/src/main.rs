@@ -4,15 +4,11 @@ use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 
 use dioxus::prelude::*;
-use dioxus_desktop::{
-    tao::menu::{MenuBar, MenuItem},
-    WindowBuilder,
-};
+use dioxus_desktop::WindowBuilder;
 use dioxus_free_icons::{
     icons::go_icons::{GoCopy, GoPlusCircle, GoSearch, GoShieldCheck, GoShieldLock, GoTrash, GoUnverified, GoVerified},
     Icon,
 };
-
 use copypasta::{ClipboardContext, ClipboardProvider};
 
 use boringascii::BoringAscii;
@@ -21,31 +17,6 @@ use spartacus_crypto::{PublicKey, SignedMessage};
 use spartacus_storage::{default_db_path, Database, VerificationInfo};
 
 fn make_config() -> dioxus_desktop::Config {
-    let mut main_menu = MenuBar::new();
-    let mut edit_menu = MenuBar::new();
-    let mut window_menu = MenuBar::new();
-    let mut application_menu = MenuBar::new();
-
-    application_menu.add_native_item(MenuItem::Quit);
-
-    edit_menu.add_native_item(MenuItem::Undo);
-    edit_menu.add_native_item(MenuItem::Redo);
-    edit_menu.add_native_item(MenuItem::Separator);
-    edit_menu.add_native_item(MenuItem::Cut);
-    edit_menu.add_native_item(MenuItem::Copy);
-    edit_menu.add_native_item(MenuItem::Paste);
-    edit_menu.add_native_item(MenuItem::SelectAll);
-
-    window_menu.add_native_item(MenuItem::Minimize);
-    window_menu.add_native_item(MenuItem::Zoom);
-    window_menu.add_native_item(MenuItem::Separator);
-    window_menu.add_native_item(MenuItem::ShowAll);
-    window_menu.add_native_item(MenuItem::EnterFullScreen);
-
-    main_menu.add_submenu("Spartacus", true, application_menu);
-    main_menu.add_submenu("Edit", true, edit_menu);
-    main_menu.add_submenu("Window", true, window_menu);
-
     dioxus_desktop::Config::default().with_window(
         WindowBuilder::new()
             .with_title("Spartacus")
@@ -55,7 +26,6 @@ fn make_config() -> dioxus_desktop::Config {
                     height: 600.0,
                 },
             ))
-            .with_menu(main_menu),
     )
 }
 
@@ -66,7 +36,7 @@ fn main() {
         eprintln!("Error: Could not harden process; exiting. {e}");
         return;
     }
-    dioxus_desktop::launch_cfg(App, make_config());
+    dioxus_desktop::launch::launch(App, vec![], make_config());
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -160,68 +130,70 @@ impl Filter for DangerFilter {
     }
 }
 
-fn App(cx: Scope) -> Element {
-    let desktop = dioxus_desktop::use_window(cx);
+fn App() -> Element {
+    let desktop = dioxus_desktop::use_window();
     desktop.set_title("Spartacus");
 
-    use_shared_state_provider(cx, || ActiveTab::MyKeys);
-    use_shared_state_provider(cx, || NewPrivateName(String::new()));
-    use_shared_state_provider(cx, || NewPrivateEmail(BoringAscii::default()));
-    use_shared_state_provider(cx, || TextToSign(String::new()));
-    use_shared_state_provider(cx, || MessageToVerify(None));
-    use_shared_state_provider(cx, || SelectedPublicSigners(BTreeSet::new()));
-    use_shared_state_provider(cx, || {
-        SignerFilter(TableFilter {
+    use_context_provider(|| Signal::new(ActiveTab::MyKeys));
+    use_context_provider(|| Signal::new(NewPrivateName(String::new())));
+    use_context_provider(|| Signal::new(NewPrivateEmail(BoringAscii::default())));
+    use_context_provider(|| Signal::new(TextToSign(String::new())));
+    use_context_provider(|| Signal::new(MessageToVerify(None)));
+    use_context_provider(|| Signal::new(SelectedPublicSigners(BTreeSet::new())));
+    use_context_provider(|| {
+        Signal::new(SignerFilter(TableFilter {
             name: String::new(),
             email: String::new(),
             fingerprint: String::new(),
-        })
+        }))
     });
-    use_shared_state_provider(cx, || {
-        PrivateFilter(TableFilter {
+    use_context_provider(|| {
+        Signal::new(PrivateFilter(TableFilter {
             name: String::new(),
             email: String::new(),
             fingerprint: String::new(),
-        })
+        }))
     });
-    use_shared_state_provider(cx, || {
-        PublicFilter(TableFilter {
+    use_context_provider(|| {
+        Signal::new(PublicFilter(TableFilter {
             name: String::new(),
             email: String::new(),
             fingerprint: String::new(),
-        })
+        }))
     });
-    use_shared_state_provider(cx, || {
-        DangerFilter(TableFilter {
+    use_context_provider(|| {
+        Signal::new(DangerFilter(TableFilter {
             name: String::new(),
             email: String::new(),
             fingerprint: String::new(),
-        })
+        }))
     });
 
     let db = Database::new(default_db_path());
 
-    use_shared_state_provider(cx, || {
-        SelectedPrivateSigner({
+    use_context_provider(|| {
+        Signal::new(SelectedPrivateSigner({
             if let Ok(ref d) = db {
                 d.visible_contents.my_public_keys.iter().next().cloned()
             } else {
                 None
             }
-        })
+        }))
     });
 
-    use_shared_state_provider(cx, || db);
+    use_context_provider(|| Signal::new(db));
 
-    cx.render(rsx! {
+    let style = include_str!("style.css");
+
+    rsx! {
         div {
             class: "spartacus",
-            style { include_str!("style.css") }
+            style { {style} }
             TabSelect {}
             div {
                 class: "contents",
                 {
-                    match *use_shared_state::<ActiveTab>(cx).unwrap().read() {
+                    match *use_context::<Signal<ActiveTab>>().read() {
                         ActiveTab::MyKeys => rsx! { MyKeys {} },
                         ActiveTab::OtherKeys => rsx! { OtherKeys {} },
                         ActiveTab::Sign => rsx! { Sign {} },
@@ -232,18 +204,18 @@ fn App(cx: Scope) -> Element {
                 }
             }
         }
-    })
+    }
 }
 
-fn TabSelect(cx: Scope) -> Element {
-    let desktop = dioxus_desktop::use_window(cx);
-    let active_tab = *use_shared_state::<ActiveTab>(cx).unwrap().read();
-    cx.render(rsx! {
+fn TabSelect() -> Element {
+    let desktop = dioxus_desktop::use_window();
+    let active_tab = *use_context::<Signal<ActiveTab>>().read();
+    rsx! {
         nav {
             onmousedown: move |_| { desktop.drag(); },
             class: "tab_select",
             div {
-                onclick: move |_| {*use_shared_state::<ActiveTab>(cx).unwrap().write() = ActiveTab::MyKeys},
+                onclick: move |_| {*use_context::<Signal<ActiveTab>>().write() = ActiveTab::MyKeys},
                 class: {
                     if let ActiveTab::MyKeys = active_tab {
                         "tab_choice active_tab"
@@ -254,7 +226,7 @@ fn TabSelect(cx: Scope) -> Element {
                 "My Keypairs"
             }
             div {
-                onclick: move |_| {*use_shared_state::<ActiveTab>(cx).unwrap().write() = ActiveTab::OtherKeys},
+                onclick: move |_| {*use_context::<Signal<ActiveTab>>().write() = ActiveTab::OtherKeys},
                 class: {
                     if let ActiveTab::OtherKeys = active_tab {
                         "tab_choice active_tab"
@@ -265,7 +237,7 @@ fn TabSelect(cx: Scope) -> Element {
                 "Other Keys"
             }
             div {
-                onclick: move |_| {*use_shared_state::<ActiveTab>(cx).unwrap().write() = ActiveTab::Sign},
+                onclick: move |_| {*use_context::<Signal<ActiveTab>>().write() = ActiveTab::Sign},
                 class: {
                     if let ActiveTab::Sign = active_tab {
                         "tab_choice active_tab"
@@ -273,11 +245,10 @@ fn TabSelect(cx: Scope) -> Element {
                         "tab_choice inactive_tab"
                     }
                 },
-                class: "tab_choice inactive_tab",
                 "Sign"
             }
             div {
-                onclick: move |_| {*use_shared_state::<ActiveTab>(cx).unwrap().write() = ActiveTab::Verify},
+                onclick: move |_| {*use_context::<Signal<ActiveTab>>().write() = ActiveTab::Verify},
                 class: {
                     if let ActiveTab::Verify = active_tab {
                         "tab_choice active_tab"
@@ -285,11 +256,10 @@ fn TabSelect(cx: Scope) -> Element {
                         "tab_choice inactive_tab"
                     }
                 },
-                class: "tab_choice inactive_tab",
                 "Verify"
             }
             div {
-                onclick: move |_| {*use_shared_state::<ActiveTab>(cx).unwrap().write() = ActiveTab::About},
+                onclick: move |_| {*use_context::<Signal<ActiveTab>>().write() = ActiveTab::About},
                 class: {
                     if let ActiveTab::About = active_tab {
                         "tab_choice active_tab"
@@ -300,7 +270,7 @@ fn TabSelect(cx: Scope) -> Element {
                 "About"
             }
             div {
-                onclick: move |_| {*use_shared_state::<ActiveTab>(cx).unwrap().write() = ActiveTab::Danger},
+                onclick: move |_| {*use_context::<Signal<ActiveTab>>().write() = ActiveTab::Danger},
                 class: {
                     if let ActiveTab::Danger = active_tab {
                         "tab_choice danger_tab active_tab"
@@ -311,20 +281,20 @@ fn TabSelect(cx: Scope) -> Element {
                 "Danger"
             }
         }
-    })
+    }
 }
 
-#[derive(PartialEq, Props)]
+#[derive(Clone, PartialEq, Props)]
 struct DeleteButtonProps {
     k: PublicKey,
     private: bool,
 }
 
-fn DeleteButton(cx: Scope<DeleteButtonProps>) -> Element {
-    let dbresult = use_shared_state::<std::io::Result<Database>>(cx).unwrap();
-    let selected_private_signer = use_shared_state::<SelectedPrivateSigner>(cx).unwrap();
-    let selected_public_signers = use_shared_state::<SelectedPublicSigners>(cx).unwrap();
-    cx.render(rsx! {
+fn DeleteButton(props: DeleteButtonProps) -> Element {
+    let mut dbresult = use_context::<Signal<std::io::Result<Database>>>();
+    let mut selected_private_signer = use_context::<Signal<SelectedPrivateSigner>>();
+    let mut selected_public_signers = use_context::<Signal<SelectedPublicSigners>>();
+    rsx! {
         a {
             class: "delete_button action_button",
             href: "",
@@ -333,18 +303,18 @@ fn DeleteButton(cx: Scope<DeleteButtonProps>) -> Element {
                     e.stop_propagation();
                     match dbresult.write().deref_mut() {
                         Ok(ref mut db) => {
-                            if cx.props.private {
-                                let _ = db.delete_private_key(&cx.props.k);
+                            if props.private {
+                                let _ = db.delete_private_key(&props.k);
                                 let mut private_signer_write = selected_private_signer.write();
                                 let private_signer = private_signer_write.deref_mut();
-                                if private_signer.0 == Some(cx.props.k.clone()) {
+                                if private_signer.0 == Some(props.k.clone()) {
                                     *private_signer = SelectedPrivateSigner(db.visible_contents.my_public_keys.iter().next().cloned());
                                 }
                             } else {
-                                let _ = db.delete_public_key(&cx.props.k);
+                                let _ = db.delete_public_key(&props.k);
                                 let mut public_signer_write = selected_public_signers.write();
                                 let public_signer = public_signer_write.deref_mut();
-                                public_signer.0.remove(&cx.props.k);
+                                public_signer.0.remove(&props.k);
                             }
                         }
                         Err(_e) => {}
@@ -358,19 +328,19 @@ fn DeleteButton(cx: Scope<DeleteButtonProps>) -> Element {
                 icon: GoTrash,
             }
         }
-    })
+    }
 }
 
-#[derive(PartialEq, Props)]
+#[derive(Clone, PartialEq, Props)]
 struct VerifyButtonProps {
     k: PublicKey,
     verif: VerificationInfo,
 }
 
-fn VerifyButton(cx: Scope<VerifyButtonProps>) -> Element {
-    let dbresult = use_shared_state::<std::io::Result<Database>>(cx).unwrap();
-    if let Some(t) = cx.props.verif.verified_time() {
-        cx.render(rsx! {
+fn VerifyButton(props: VerifyButtonProps) -> Element {
+    let mut dbresult = use_context::<Signal<std::io::Result<Database>>>();
+    if let Some(t) = props.verif.verified_time() {
+        rsx! {
             a {
                 class: "action_button",
                 href: "",
@@ -380,7 +350,7 @@ fn VerifyButton(cx: Scope<VerifyButtonProps>) -> Element {
                         e.stop_propagation();
                         match dbresult.write().deref_mut() {
                             Ok(ref mut db) => {
-                                let _ = db.set_unverified(&cx.props.k);
+                                let _ = db.set_unverified(&props.k);
                             }
                             Err(_e) => {}
                         }
@@ -393,9 +363,9 @@ fn VerifyButton(cx: Scope<VerifyButtonProps>) -> Element {
                     icon: GoVerified,
                 }
             }
-        })
+        }
     } else {
-        cx.render(rsx! {
+        rsx! {
             a {
                 class: "action_button",
                 href: "",
@@ -405,7 +375,7 @@ fn VerifyButton(cx: Scope<VerifyButtonProps>) -> Element {
                         e.stop_propagation();
                         match dbresult.write().deref_mut() {
                             Ok(ref mut db) => {
-                                let _ = db.set_verified(&cx.props.k);
+                                let _ = db.set_verified(&props.k);
                             }
                             Err(_e) => {}
                         }
@@ -418,14 +388,14 @@ fn VerifyButton(cx: Scope<VerifyButtonProps>) -> Element {
                     icon: GoUnverified,
                 }
             }
-        })
+        }
     }
 }
 
-fn FilterRow<T: Filter + 'static>(cx: Scope) -> Element {
-    let filter = use_shared_state::<T>(cx).unwrap();
+fn FilterRow<T: Filter + 'static>() -> Element {
+    let mut filter = use_context::<Signal<T>>();
 
-    cx.render(rsx! {
+    rsx! {
         tr {
             class: "filter_row",
             td {
@@ -433,7 +403,7 @@ fn FilterRow<T: Filter + 'static>(cx: Scope) -> Element {
                 input {
                     "type": "text",
                     placeholder: "Filter names",
-                    oninput: move |evt| filter.write().set_name(&evt.value)
+                    oninput: move |evt| filter.write().set_name(&evt.value())
                 }
                 Icon {
                     class: "search_icon",
@@ -448,7 +418,7 @@ fn FilterRow<T: Filter + 'static>(cx: Scope) -> Element {
                 input {
                     "type": "text",
                     placeholder: "Filter emails",
-                    oninput: move |evt| filter.write().set_email(&evt.value)
+                    oninput: move |evt| filter.write().set_email(&evt.value())
                 }
                 Icon {
                     class: "search_icon",
@@ -463,7 +433,7 @@ fn FilterRow<T: Filter + 'static>(cx: Scope) -> Element {
                 input {
                     "type": "text",
                     placeholder: "Filter fingerprints",
-                    oninput: move |evt| filter.write().set_fingerprint(&evt.value)
+                    oninput: move |evt| filter.write().set_fingerprint(&evt.value())
                 }
                 Icon {
                     class: "search_icon",
@@ -477,27 +447,27 @@ fn FilterRow<T: Filter + 'static>(cx: Scope) -> Element {
                 class: "delete"
             }
         }
-    })
+    }
 }
 
-fn Danger(cx: Scope) -> Element {
-    let dbresult = use_shared_state::<std::io::Result<Database>>(cx).unwrap();
+fn Danger() -> Element {
+    let dbresult = use_context::<Signal<std::io::Result<Database>>>();
     let dbread = dbresult.read();
     let keys = match dbread.deref() {
         Ok(ref db) => db.visible_contents.my_public_keys.clone(),
         Err(ref e) => {
-            return cx.render(rsx! {
+            return rsx! {
                 "Error reading database: {e}"
-            })
+            }
         }
     };
-    let filter = use_shared_state::<DangerFilter>(cx).unwrap();
+    let filter = use_context::<Signal<DangerFilter>>();
 
     let filter_name = filter.read().0.name.to_lowercase();
     let filter_email = filter.read().0.email.to_lowercase();
     let filter_fingerprint = filter.read().0.fingerprint.replace(' ', "").to_lowercase();
 
-    cx.render(rsx! {
+    rsx! {
         div {
             class: "toolbar",
             "WARNING: The actions on this tab are irreversible!"
@@ -531,27 +501,25 @@ fn Danger(cx: Scope) -> Element {
                             && k.holder().email().to_lowercase().contains(&filter_email)
                             && k.fingerprint().replace(' ', "").to_lowercase().contains(&filter_fingerprint)
                         {
-                            rsx!{
-                                tr {
-                                    key: "{k.fingerprint()}",
-                                    td {
-                                        class: "name",
-                                        k.holder().name().clone(),
-                                    }
-                                    td {
-                                        class: "email",
-                                        k.holder().email().as_str().to_string(),
-                                    }
-                                    td {
-                                        class: "fingerprint",
-                                        k.fingerprint()
-                                    }
-                                    td {
-                                        class: "delete",
-                                        DeleteButton {
-                                            k: k.clone(),
-                                            private: true
-                                        }
+                            tr {
+                                key: "{k.fingerprint()}",
+                                td {
+                                    class: "name",
+                                    {k.holder().name().clone()},
+                                }
+                                td {
+                                    class: "email",
+                                    {k.holder().email().as_str().to_string()},
+                                }
+                                td {
+                                    class: "fingerprint",
+                                    {k.fingerprint()}
+                                }
+                                td {
+                                    class: "delete",
+                                    DeleteButton {
+                                        k: k.clone(),
+                                        private: true
                                     }
                                 }
                             }
@@ -560,37 +528,37 @@ fn Danger(cx: Scope) -> Element {
                 }
             }
         }
-    })
+    }
 }
 
-fn MyKeys(cx: Scope) -> Element {
-    let dbresult = use_shared_state::<std::io::Result<Database>>(cx).unwrap();
+fn MyKeys() -> Element {
+    let mut dbresult = use_context::<Signal<std::io::Result<Database>>>();
     let dbread = dbresult.read();
-    let new_private_name = use_shared_state::<NewPrivateName>(cx).unwrap();
+    let mut new_private_name = use_context::<Signal<NewPrivateName>>();
     let new_private_name_val = new_private_name.read().deref().0.clone();
     let new_private_name_copy = new_private_name.read().deref().0.clone();
-    let new_private_email = use_shared_state::<NewPrivateEmail>(cx).unwrap();
+    let mut new_private_email = use_context::<Signal<NewPrivateEmail>>();
     let new_private_email_val = new_private_email.read().deref().0.clone();
     let new_private_email_copy = new_private_email.read().deref().0.clone();
-    let selected_private_signer = use_shared_state::<SelectedPrivateSigner>(cx).unwrap();
+    let mut selected_private_signer = use_context::<Signal<SelectedPrivateSigner>>();
     let keys = match dbread.deref() {
         Ok(ref db) => db.visible_contents.my_public_keys.clone(),
         Err(ref e) => {
-            return cx.render(rsx! {
+            return rsx! {
                 "Error reading database: {e}"
-            })
+            }
         }
     };
 
     let new_key_form_id = "new_key_form";
 
-    let filter = use_shared_state::<PrivateFilter>(cx).unwrap();
+    let filter = use_context::<Signal<PrivateFilter>>();
 
     let filter_name = filter.read().0.name.to_lowercase();
     let filter_email = filter.read().0.email.to_lowercase();
     let filter_fingerprint = filter.read().0.fingerprint.replace(' ', "").to_lowercase();
 
-    cx.render(rsx! {
+    rsx! {
         form {
             onsubmit: move |_| {
                 match dbresult.write().deref_mut() {
@@ -626,7 +594,7 @@ fn MyKeys(cx: Scope) -> Element {
                 value: "{new_private_name_val}",
                 placeholder: "New Key Name",
                 form: new_key_form_id,
-                oninput: move |evt| *new_private_name.write() = NewPrivateName(evt.value.clone())
+                oninput: move |evt| *new_private_name.write() = NewPrivateName(evt.value().clone())
             }
             input {
                 class: "new_key_email_input",
@@ -634,7 +602,7 @@ fn MyKeys(cx: Scope) -> Element {
                 placeholder: "New Key Email",
                 form: new_key_form_id,
                 oninput: move |evt| {
-                    if let Ok(new) = BoringAscii::from_str(&evt.value) {
+                    if let Ok(new) = BoringAscii::from_str(&evt.value()) {
                         *new_private_email.write() = NewPrivateEmail(new)
                     } else {
                         *new_private_email.write() = NewPrivateEmail(new_private_email_val.clone())
@@ -674,20 +642,19 @@ fn MyKeys(cx: Scope) -> Element {
                             && k.holder().email().to_lowercase().contains(&filter_email)
                             && k.fingerprint().replace(' ', "").to_lowercase().contains(&filter_fingerprint)
                         {
-                            rsx! {
                                 tr {
                                     key: "{k.fingerprint()}",
                                     td {
                                         class: "name",
-                                        k.holder().name().clone(),
+                                        {k.holder().name().clone()},
                                     }
                                     td {
                                         class: "email",
-                                        k.holder().email().as_str().to_string(),
+                                        {k.holder().email().as_str().to_string()},
                                     }
                                     td {
                                         class: "fingerprint",
-                                        k.fingerprint()
+                                        {k.fingerprint()}
                                     }
                                     td {
                                         class: "actions",
@@ -712,35 +679,34 @@ fn MyKeys(cx: Scope) -> Element {
                                             }
                                         }
                                     }
-                                }
                             }
                         }
                     }
                 }
             }
         }
-    })
+    }
 }
 
-fn OtherKeys(cx: Scope) -> Element {
-    let dbresult = use_shared_state::<std::io::Result<Database>>(cx).unwrap();
+fn OtherKeys() -> Element {
+    let mut dbresult = use_context::<Signal<std::io::Result<Database>>>();
     let dbread = dbresult.read();
     let keys = match dbread.deref() {
         Ok(ref db) => db.visible_contents.their_public_keys.clone(),
         Err(ref e) => {
-            return cx.render(rsx! {
+            return rsx! {
                 "Error reading database: {e}"
-            })
+            }
         }
     };
 
-    let filter = use_shared_state::<PublicFilter>(cx).unwrap();
+    let filter = use_context::<Signal<PublicFilter>>();
 
     let filter_name = filter.read().0.name.to_lowercase();
     let filter_email = filter.read().0.email.to_lowercase();
     let filter_fingerprint = filter.read().0.fingerprint.replace(' ', "").to_lowercase();
 
-    cx.render(rsx! {
+    rsx! {
         div {
             class: "toolbar",
             Icon {
@@ -798,20 +764,19 @@ fn OtherKeys(cx: Scope) -> Element {
                             && k.0.holder().email().to_lowercase().contains(&filter_email)
                             && k.0.fingerprint().replace(' ', "").to_lowercase().contains(&filter_fingerprint)
                         {
-                            rsx! {
                                 tr {
                                     key: "{k.0.fingerprint()}",
                                     td {
                                         class: "name",
-                                        k.0.holder().name().clone(),
+                                        {k.0.holder().name().clone()},
                                     }
                                     td {
                                         class: "email",
-                                        k.0.holder().email().as_str().to_string(),
+                                        {k.0.holder().email().as_str().to_string()},
                                     }
                                     td {
                                         class: "fingerprint",
-                                        k.0.fingerprint()
+                                        {k.0.fingerprint()}
                                     }
                                     td {
                                         class: "actions",
@@ -845,17 +810,16 @@ fn OtherKeys(cx: Scope) -> Element {
                                         }
                                     }
                                 }
-                            }
                         }
                     }
                 }
             }
         }
-    })
+    }
 }
 
-fn PrivateSignerSelect(cx: Scope) -> Element {
-    let dbresult = use_shared_state::<std::io::Result<Database>>(cx).unwrap();
+fn PrivateSignerSelect() -> Element {
+    let dbresult = use_context::<Signal<std::io::Result<Database>>>();
     let dbread = dbresult.read();
     let my_keys = match dbread.deref() {
         Ok(ref db) => db
@@ -866,23 +830,23 @@ fn PrivateSignerSelect(cx: Scope) -> Element {
             .map(|k| (k.fingerprint(), k))
             .collect::<BTreeMap<_, _>>(),
         Err(ref e) => {
-            return cx.render(rsx! {
+            return rsx! {
                 "Error reading database: {e}"
-            })
+            }
         }
     };
     let my_keys_clone = my_keys.clone();
 
-    let selected_private_signer = use_shared_state::<SelectedPrivateSigner>(cx).unwrap();
+    let mut selected_private_signer = use_context::<Signal<SelectedPrivateSigner>>();
     let k = selected_private_signer.read().deref().0.clone();
     let selected_fingerprint = k.map(|k| k.fingerprint());
 
-    cx.render(rsx! {
+    rsx! {
         select {
             oninput: move |evt| {
                 let mut selected_signer = selected_private_signer.write();
                 let selected_private_signer = selected_signer.deref_mut();
-                if let Some(k) = my_keys_clone.get(&evt.value) {
+                if let Some(k) = my_keys_clone.get(&evt.value()) {
                     *selected_private_signer = SelectedPrivateSigner(Some(k.clone()));
                 }
             },
@@ -898,56 +862,57 @@ fn PrivateSignerSelect(cx: Scope) -> Element {
                 }
             }
         }
-    })
+    }
 }
 
-#[derive(PartialEq, Props)]
+#[derive(Clone, PartialEq, Props)]
 struct PublicSignerSelectProps {
     k: PublicKey,
 }
 
-fn PublicSignerSelect(cx: Scope<PublicSignerSelectProps>) -> Element {
-    let selected_public_signers = use_shared_state::<SelectedPublicSigners>(cx).unwrap();
+fn PublicSignerSelect(props: PublicSignerSelectProps) -> Element {
+    let mut selected_public_signers = use_context::<Signal<SelectedPublicSigners>>();
     let current_signers = selected_public_signers.read();
-    cx.render(rsx! {
+    let k = props.k.clone();
+    rsx! {
             input {
                 oninput: move |e| {
                     let mut signers = selected_public_signers.write();
                     let signers = signers.deref_mut();
-                    if e.value == "true" {
-                        signers.0.insert(cx.props.k.clone().clone());
+                    if e.value() == "true" {
+                        signers.0.insert(props.k.clone().clone());
                     } else {
-                        signers.0.remove(&cx.props.k);
+                        signers.0.remove(&props.k);
                     }
                 },
-                checked: "{current_signers.0.contains(&cx.props.k)}",
+                checked: current_signers.0.contains(&k),
                 "type": "checkbox",
             }
-    })
+    }
 }
 
-fn Sign(cx: Scope) -> Element {
-    let dbresult = use_shared_state::<std::io::Result<Database>>(cx).unwrap();
+fn Sign() -> Element {
+    let dbresult = use_context::<Signal<std::io::Result<Database>>>();
     let dbread = dbresult.read();
     let their_keys = match dbread.deref() {
         Ok(ref db) => db.visible_contents.their_public_keys.clone(),
         Err(ref e) => {
-            return cx.render(rsx! {
+            return rsx! {
                 "Error reading database: {e}"
-            })
+            }
         }
     };
 
-    let text_to_sign = use_shared_state::<TextToSign>(cx).unwrap();
+    let mut text_to_sign = use_context::<Signal<TextToSign>>();
     let text_to_sign_val = text_to_sign.read().deref().0.clone();
 
-    let filter = use_shared_state::<SignerFilter>(cx).unwrap();
+    let filter = use_context::<Signal<SignerFilter>>();
 
     let filter_name = filter.read().0.name.to_lowercase();
     let filter_email = filter.read().0.email.to_lowercase();
     let filter_fingerprint = filter.read().0.fingerprint.replace(' ', "").to_lowercase();
 
-    cx.render(rsx! {
+    rsx! {
         div {
             class: "toolbar",
             Icon {
@@ -967,7 +932,7 @@ fn Sign(cx: Scope) -> Element {
         br {}
         textarea {
             value: "{text_to_sign_val}",
-            oninput: move |evt| *text_to_sign.write() = TextToSign(evt.value.clone()),
+            oninput: move |evt| *text_to_sign.write() = TextToSign(evt.value().clone()),
             class: "sign_text"
         }
         br {}
@@ -1010,33 +975,30 @@ fn Sign(cx: Scope) -> Element {
                         && k.0.holder().email().to_lowercase().contains(&filter_email)
                         && k.0.fingerprint().replace(' ', "").to_lowercase().contains(&filter_fingerprint)
                     {
-                        rsx! {
                             tr {
                                 key: "{k.0.fingerprint()}",
                                 td {
                                     class: "name",
-                                    k.0.holder().name()
+                                    {k.0.holder().name()}
                                 }
                                 td {
                                     class: "email",
-                                    k.0.holder().email()
+                                    {k.0.holder().email()}
                                 }
                                 td {
                                     class: "fingerprint",
-                                    k.0.fingerprint()
+                                    {k.0.fingerprint()}
                                 }
                                 td {
                                     class: "actions",
                                     if let Some(t) = k.1.verified_time() {
-                                        rsx! {
-                                            span {
-                                                title: "Verified {t.date()}",
-                                                Icon {
-                                                    width: 15,
-                                                    height: 15,
-                                                    fill: "#00f",
-                                                    icon: GoVerified,
-                                                }
+                                        span {
+                                            title: "Verified {t.date()}",
+                                            Icon {
+                                                width: 15,
+                                                height: 15,
+                                                fill: "#00f",
+                                                icon: GoVerified,
                                             }
                                         }
                                     }
@@ -1048,29 +1010,28 @@ fn Sign(cx: Scope) -> Element {
                                     }
                                 }
                             }
-                        }
                     }
                 }
             }
         }
         }
-    })
+    }
 }
 
-fn SignAndCopy(cx: Scope) -> Element {
-    let dbresult = use_shared_state::<std::io::Result<Database>>(cx).unwrap();
-    let text_to_sign = use_shared_state::<TextToSign>(cx).unwrap();
+fn SignAndCopy() -> Element {
+    let mut dbresult = use_context::<Signal<std::io::Result<Database>>>();
+    let text_to_sign = use_context::<Signal<TextToSign>>();
     let text_to_sign_val = text_to_sign.read().deref().0.clone();
-    let selected_public_signers = use_shared_state::<SelectedPublicSigners>(cx).unwrap();
+    let selected_public_signers = use_context::<Signal<SelectedPublicSigners>>();
     let current_signers = selected_public_signers
         .read()
         .0
         .clone()
         .into_iter()
         .collect::<Vec<_>>();
-    let selected_private_signer = use_shared_state::<SelectedPrivateSigner>(cx).unwrap();
+    let selected_private_signer = use_context::<Signal<SelectedPrivateSigner>>();
     let k = selected_private_signer.read().deref().0.clone();
-    cx.render(rsx!{
+    rsx!{
         button {
             onclick: move |_| {
                 if let Ok(ref mut db) = dbresult.write().deref_mut() {
@@ -1085,12 +1046,12 @@ fn SignAndCopy(cx: Scope) -> Element {
             },
             "Sign and Copy to Clipboard"
         }
-    })
+    }
 }
 
-fn PasteAndVerify(cx: Scope) -> Element {
-    let message_to_verify = use_shared_state::<MessageToVerify>(cx).unwrap();
-    cx.render(rsx! {
+fn PasteAndVerify() -> Element {
+    let mut message_to_verify = use_context::<Signal<MessageToVerify>>();
+    rsx! {
         button {
             onclick: move |_| {
                 let mut message_to_verify = message_to_verify.write();
@@ -1106,16 +1067,16 @@ fn PasteAndVerify(cx: Scope) -> Element {
             },
             "Verify Message From Clipboard"
         }
-    })
+    }
 }
 
-#[derive(PartialEq, Props)]
+#[derive(Clone, PartialEq, Props)]
 struct VerificationResultsProps {
     signed_message: SignedMessage,
 }
 
-fn VerificationResults(cx: Scope<VerificationResultsProps>) -> Element {
-    let dbresult = use_shared_state::<std::io::Result<Database>>(cx).unwrap();
+fn VerificationResults(props: VerificationResultsProps) -> Element {
+    let dbresult = use_context::<Signal<std::io::Result<Database>>>();
     let (known_keys, my_keys) = match *dbresult.read() {
         Ok(ref db) => (
             db.visible_contents.their_public_keys.clone(),
@@ -1126,7 +1087,7 @@ fn VerificationResults(cx: Scope<VerificationResultsProps>) -> Element {
 
     let mut all_known = true;
     let mut all_verified = true;
-    for pubkey in cx.props.signed_message.ring() {
+    for pubkey in props.signed_message.ring() {
         if !my_keys.contains(pubkey) {
             match known_keys.get(pubkey) {
                 None => {
@@ -1142,13 +1103,15 @@ fn VerificationResults(cx: Scope<VerificationResultsProps>) -> Element {
         }
     }
 
-    if cx.props.signed_message.verify() {
-        cx.render(rsx!{
+    let signed_message = props.signed_message.message.clone();
+
+    if props.signed_message.verify() {
+        rsx!{
             b {
                 "Message:"
             }
             br {}
-            "{cx.props.signed_message.message}"
+            "{props.signed_message.message}"
             br {}
             br {}
             b {
@@ -1178,7 +1141,7 @@ fn VerificationResults(cx: Scope<VerificationResultsProps>) -> Element {
                     }
                 }
                 tbody {
-                    for pubkey in cx.props.signed_message.ring() {
+                    for pubkey in props.signed_message.ring() {
                         tr {
                             key: "{pubkey.fingerprint()}",
                             td {
@@ -1196,7 +1159,6 @@ fn VerificationResults(cx: Scope<VerificationResultsProps>) -> Element {
                             td {
                                 class: "actions",
                                 if my_keys.contains(pubkey) || known_keys.get(pubkey).map(|v| v.is_verified()).unwrap_or(false) {
-                                    rsx!{
                                         span {
                                             title: "Key is verified",
                                             Icon {
@@ -1206,9 +1168,7 @@ fn VerificationResults(cx: Scope<VerificationResultsProps>) -> Element {
                                                 icon: GoVerified,
                                             }
                                         }
-                                    }
                                 } else if my_keys.contains(pubkey) || known_keys.contains_key(pubkey) {
-                                    rsx!{
                                         span {
                                             title: "Key is known but unverified",
                                             Icon {
@@ -1218,33 +1178,32 @@ fn VerificationResults(cx: Scope<VerificationResultsProps>) -> Element {
                                                 icon: GoVerified,
                                             }
                                         }
-                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-        })
+        }
     } else {
-        cx.render(rsx! {
+        rsx! {
             b {
                 "Message:"
             }
             br {}
-            "{cx.props.signed_message.message}"
+            {signed_message}
             br {}
             "Failed to verify."
-        })
+        }
     }
 }
 
-fn Verify(cx: Scope) -> Element {
-    let message_to_verify = use_shared_state::<MessageToVerify>(cx).unwrap();
+fn Verify() -> Element {
+    let message_to_verify = use_context::<Signal<MessageToVerify>>();
     let message_to_verify_val = message_to_verify.read().deref().0.clone();
 
     if let Some(signed_message) = message_to_verify_val {
-        cx.render(rsx! {
+        rsx! {
             div {
                 class: "toolbar",
                 Icon {
@@ -1264,9 +1223,9 @@ fn Verify(cx: Scope) -> Element {
                     }
                 }
             }
-        })
+        }
     } else {
-        cx.render(rsx! {
+        rsx! {
             div {
                 class: "toolbar",
                 Icon {
@@ -1281,6 +1240,6 @@ fn Verify(cx: Scope) -> Element {
             div {
                 class: "data",
             }
-        })
+        }
     }
 }

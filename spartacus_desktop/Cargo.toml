@@ -14,9 +14,12 @@ path = "src/main.rs"
 
 [dependencies]
 copypasta = "0.10"
-dioxus = "0.4.0"
-dioxus-desktop = "0.4.0"
-dioxus-free-icons = {version = "0.7.0", features = ["octicons"]}
+
+# We need to use the master branch because the 0.4.3 release crashes on m1 macs when you edit the menu bar.
+dioxus = { git = "https://github.com/DioxusLabs/dioxus.git", branch = "master" }
+dioxus-desktop = { git = "https://github.com/DioxusLabs/dioxus.git", branch = "master" }
+# dioxus-free-icons = {version = "0.7.0", features = ["octicons"]}
+dioxus-free-icons = { git = "https://github.com/benwr/dioxus-free-icons.git", branch = "main", features = ["octicons"] }
 secmem-proc = "0.3"
 
 boringascii.workspace = true

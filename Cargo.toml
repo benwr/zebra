@@ -21,6 +21,9 @@ boringascii = { path = "boringascii" }
 spartacus_crypto = { path = "spartacus_crypto" }
 spartacus_storage = { path = "spartacus_storage" }
 
+# My fork uses a much smaller work factor for age encryption, because we are
+# constantly decrypting the db file, and we never let the user choose a
+# passphrase. Important to keep up to date with upstream, though.
 age = { git = "https://github.com/benwr/rage.git", branch = "spartacus_patch" }
 
 borsh = { version = "1.0.0-alpha.4", features = ["derive"] }
