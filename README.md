@@ -73,9 +73,7 @@ attempts at tracing the process or reading core dumps / swap.
 
 ## Copyright Information
 
-The icon file `zebra_head.png` is a modification of ["Zebra, marble
-sculpture of Denis Foyatier (1830), Louvre
-Museum"](https://www.flickr.com/photos/carolemage/8270400666) by Carole Raddato
+The icon file `zebra_head.png` is a modification of ["Zebra, Ngorogoro"](https://www.flickr.com/photos/woodlouse/3990713395) by Woodlouse
 on Flickr. Unlike the rest of this repository, it is released under a [Creative
 Commons Attribution-ShareAlike 2.0 Generic
 License](https://creativecommons.org/licenses/by-sa/2.0/).
