@@ -1,5 +1,5 @@
 [package]
-name = "spartacus_storage"
+name = "zebra_storage"
 version = "0.0.0"
 edition = "2021"
 
@@ -8,7 +8,7 @@ default = []
 debug = []
 
 [dependencies]
-spartacus_crypto.workspace = true
+zebra_crypto.workspace = true
 boringascii.workspace = true
 
 age.workspace = true

@@ -1,5 +1,5 @@
-# Spartacus: an app for creating and verifying ring signatures
-![](spartacus_desktop/spartacus_head.png)
+# Zebra: an app for creating and verifying ring signatures
+![](zebra_desktop/zebra_head.png)
 
 ## What are ring signatures?
 
@@ -20,22 +20,22 @@ can tell that *someone* in that group signed the message. But they can't tell
 
 ## Design
 
-Spartacus is designed with the following principles in mind, in order from most
+Zebra is designed with the following principles in mind, in order from most
 important to least important:
 
-1. Spartacus should be a trustworthy implementation of the theory of ring
+1. Zebra should be a trustworthy implementation of the theory of ring
    signatures. If you observe a signed message, and the app successfully
    verifies the signature, you should be able to feel confident in the
    signature.
-2. Spartacus should be simple to use and hard to misuse. It should be almost
+2. Zebra should be simple to use and hard to misuse. It should be almost
    trivial to create a signature, or import a key. It should be almost
    impossible to leak your private key, or compromise your anonymity within a
    ring.
-3. Spartacus should be implemented as simply as possible, with the minimum set
+3. Zebra should be implemented as simply as possible, with the minimum set
    of dependencies. The more crucial a piece of code is for providing the
    trustworthiness guarantee, the fewer dependencies it should have.
 
-Spartacus is a [dioxus](https://dioxuslabs.com) app. This means that the user
+Zebra is a [dioxus](https://dioxuslabs.com) app. This means that the user
 interface code can be understood by anyone with knowledge of web programming
 and Rust, but the app relies on the operating system's web view rather than a
 packaged browser. This improves resource usage somewhat compared to an electon
@@ -43,7 +43,7 @@ app.
 
 ### Cryptography
 
-Spartacus's ring signature implementation is based on the algorithm presented
+Zebra's ring signature implementation is based on the algorithm presented
 in the book [Zero to Monero: Second
 Edition](https://www.getmonero.org/library/Zero-to-Monero-2-0-0.pdf).
 We use the [Ristretto group](https://ristretto.group/) as our prime order
@@ -56,7 +56,7 @@ to be associated with the identity provided.
 
 ### Storage
 
-Spartacus uses [age](https://github.com/FiloSottile/age) to encrypt an extremely
+Zebra uses [age](https://github.com/FiloSottile/age) to encrypt an extremely
 simple database of keys. The password for this database is chosen randomly and
 stored in the system's keychain. So the operating system will prompt the user
 before allowing the database to be unlocked (on app start, or when modifying
@@ -73,7 +73,7 @@ attempts at tracing the process or reading core dumps / swap.
 
 ## Copyright Information
 
-The icon file `spartacus_head.png` is a modification of ["Spartacus, marble
+The icon file `zebra_head.png` is a modification of ["Zebra, marble
 sculpture of Denis Foyatier (1830), Louvre
 Museum"](https://www.flickr.com/photos/carolemage/8270400666) by Carole Raddato
 on Flickr. Unlike the rest of this repository, it is released under a [Creative
@@ -82,6 +82,6 @@ License](https://creativecommons.org/licenses/by-sa/2.0/).
 
 Some of the code in this repository is released under an MIT license.
 Specifically, everything inside of the `age` and `age-core` directories, as
-well as the `sign` and `verify` functions in `spartacus_crypto/lib.rs`.
+well as the `sign` and `verify` functions in `zebra_crypto/lib.rs`.
 
 Everything else is the copyright of Kurt Brown.

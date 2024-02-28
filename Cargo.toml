@@ -2,9 +2,9 @@
 
 resolver = "2"
 members = [
-  "spartacus_crypto",
-  "spartacus_desktop",
-  "spartacus_storage",
+  "zebra_crypto",
+  "zebra_desktop",
+  "zebra_storage",
   "boringascii",
 ]
 
@@ -13,18 +13,18 @@ edition = "2021"
 rust-version = "1.65"
 authors = ["Ben Weinstein-Raun <b@w-r.me>"]
 license = ""
-repository = "https://github.com/benwr/spartacus"
+repository = "https://github.com/benwr/zebra"
 
 [workspace.dependencies]
 boringascii = { path = "boringascii" }
 
-spartacus_crypto = { path = "spartacus_crypto" }
-spartacus_storage = { path = "spartacus_storage" }
+zebra_crypto = { path = "zebra_crypto" }
+zebra_storage = { path = "zebra_storage" }
 
 # My fork uses a much smaller work factor for age encryption, because we are
 # constantly decrypting the db file, and we never let the user choose a
 # passphrase. Important to keep up to date with upstream, though.
-age = { git = "https://github.com/benwr/rage.git", branch = "spartacus_patch" }
+age = { git = "https://github.com/benwr/rage.git", branch = "zebra_patch" }
 
 borsh = { version = "1.0.0-alpha.4", features = ["derive"] }
 rand = { version = "0.8", features = ["getrandom"] }

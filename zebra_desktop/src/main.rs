@@ -12,14 +12,14 @@ use dioxus_free_icons::{
 use copypasta::{ClipboardContext, ClipboardProvider};
 
 use boringascii::BoringAscii;
-use spartacus::about::About;
-use spartacus_crypto::{PublicKey, SignedMessage};
-use spartacus_storage::{default_db_path, Database, VerificationInfo};
+use zebra::about::About;
+use zebra_crypto::{PublicKey, SignedMessage};
+use zebra_storage::{default_db_path, Database, VerificationInfo};
 
 fn make_config() -> dioxus_desktop::Config {
     dioxus_desktop::Config::default().with_window(
         WindowBuilder::new()
-            .with_title("Spartacus")
+            .with_title("Zebra")
             .with_min_inner_size(dioxus_desktop::tao::dpi::Size::Logical(
                 dioxus_desktop::tao::dpi::LogicalSize {
                     width: 900.0,
@@ -132,7 +132,7 @@ impl Filter for DangerFilter {
 
 fn App() -> Element {
     let desktop = dioxus_desktop::use_window();
-    desktop.set_title("Spartacus");
+    desktop.set_title("Zebra");
 
     use_context_provider(|| Signal::new(ActiveTab::MyKeys));
     use_context_provider(|| Signal::new(NewPrivateName(String::new())));
@@ -187,7 +187,7 @@ fn App() -> Element {
 
     rsx! {
         div {
-            class: "spartacus",
+            class: "zebra",
             style { {style} }
             TabSelect {}
             div {

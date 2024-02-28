@@ -1,15 +1,15 @@
 [package]
-name = "Spartacus"
+name = "Zebra"
 description = "A tool for creating and verifying ring signatures."
 version = "1.0.0-alpha"
 edition = "2021"
 
 [lib]
-name = "spartacus"
+name = "zebra"
 path = "src/lib.rs"
 
 [[bin]]
-name = "Spartacus"
+name = "Zebra"
 path = "src/main.rs"
 
 [dependencies]
@@ -24,11 +24,11 @@ secmem-proc = "0.3"
 
 boringascii.workspace = true
 
-spartacus_crypto.workspace = true
-spartacus_storage.workspace = true
+zebra_crypto.workspace = true
+zebra_storage.workspace = true
 
 [package.metadata.bundle]
-name = "Spartacus"
-identifier = "me.w-r.Spartacus"
-icon = ["spartacus_head.png"]
+name = "Zebra"
+identifier = "me.w-r.Zebra"
+icon = ["zebra_head.png"]
 category = "public.app-category.utilities"

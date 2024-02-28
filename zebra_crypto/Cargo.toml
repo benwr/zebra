@@ -1,5 +1,5 @@
 [package]
-name = "spartacus_crypto"
+name = "zebra_crypto"
 version = "0.0.0"
 edition = "2021"
 

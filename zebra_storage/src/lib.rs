@@ -11,7 +11,7 @@ use fs2::FileExt;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use boringascii::BoringAscii;
-use spartacus_crypto::{Identity, PrivateKey, PublicKey, SignedMessage};
+use zebra_crypto::{Identity, PrivateKey, PublicKey, SignedMessage};
 
 use crate::dbfile_utils::lockfile_path;
 use crate::keyring_utils::get_or_create_db_key;
@@ -90,11 +90,11 @@ struct DatabaseContentsV0 {
 #[derive(BorshDeserialize, BorshSerialize)]
 #[borsh(use_discriminant = true)]
 #[repr(u8)]
-enum SpartacusDatabaseContents {
+enum ZebraDatabaseContents {
     V0(DatabaseContentsV0) = 0,
 }
 
-impl Default for SpartacusDatabaseContents {
+impl Default for ZebraDatabaseContents {
     fn default() -> Self {
         Self::V0(DatabaseContentsV0 {
             private_keys: BTreeMap::new(),
@@ -189,7 +189,7 @@ impl Database {
         // We've already authenticated this file, since age is AEAD when using a passphrase. So we
         // can be relatively sure that it's not crafted to DoS us or anything.
         reader.read_to_end(&mut bytes)?;
-        let SpartacusDatabaseContents::V0(res) =
+        let ZebraDatabaseContents::V0(res) =
             BorshDeserialize::deserialize(&mut bytes.as_ref())?;
         Ok((res, pw))
     }
@@ -200,7 +200,7 @@ impl Database {
         let result_vis = db.get_visible();
 
         let mut buffer = vec![];
-        SpartacusDatabaseContents::V0(db).serialize(&mut buffer)?;
+        ZebraDatabaseContents::V0(db).serialize(&mut buffer)?;
 
         let mut tmpfile = tempfile::NamedTempFile::new()?;
         let encryptor = age::Encryptor::with_user_passphrase(pw);

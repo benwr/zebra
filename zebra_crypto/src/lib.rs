@@ -485,10 +485,10 @@ impl SignedMessage {
     }
 }
 
-// A Spartacus-signed message in ASCII format looks like this (lines numbered for convenience):
+// A Zebra-signed message in ASCII format looks like this (lines numbered for convenience):
 
 /*
-(0)         The following message has been signed using Spartacus 1.0:
+(0)         The following message has been signed using Zebra 1.0:
 (1)         """
 (2)         Test
 (M+2)       """
@@ -500,7 +500,7 @@ impl SignedMessage {
 (M+5+N+1)
 (M+5+N+2)   9%Kq+rztr@G/UUZwbP>Z7>&V*av.io+RoI^sPb&o0SSi25=.[ils>3Ss7M8-B97#czy[:{B-4D+003E[Cp^?/zdP/q!aTb+yC+&9/L5.?QFe<N&)li1*NhhYPI[LV.AhV!}*:H2!bn+D4UbI41^@[(bwbQo.H-G&Twp7%IWfs-0069?!aTb+yC+&9/L5.?QFe<N&)li1*NhhYPI[LV.Aiwihg7Yu/b[sVh2J10vI*p]H[S*gekCK-Dmz-%@0n2*}o{}4Ieyfk]hs*-j2Bx<pnD&qD0LlxRmz:?5DJgr002SfwGTuGzdNI{0001ez/oCSBz>R%v}fBfv@Dkx=*PEupvK+z::^HobOkJ[Lr%JJ]puzjY<ELiZ7-&[RpE^E2h^OKLus#2kE%Cj7j%m<z=@>!2OE#</y5?y0002S=*PEupvK+z::^HobOkJ[Lr%JJ]puzjY<ELiZ7-*^4/Af&IVi)R2moE@aE(&{@:wiKNF*Rr0q<6G8k4s6L3zuhs!s8N&9nG(NCOYtp$me1aj.^gt$f7w#4*}O
 (M+5+N+3)
-(M+5+N+4) To verify this signature, paste this entire message into the Spartacus app (starting with "The following message" and ending with this line).
+(M+5+N+4) To verify this signature, paste this entire message into the Zebra app (starting with "The following message" and ending with this line).
 */
 
 // - A fixed prefix (including the 1.0 version number, which should allow us to change aspects of the
@@ -540,7 +540,7 @@ impl SignedMessage {
 // https://github.com/decafbad/z85/blob/ca669a0682b0a559b883f770c93e746f6a7e3ebe/src/internal.rs#L51
 
 const SIGNED_MESSAGE_FIRST_LINE: &str =
-    "The following message has been signed using Spartacus 1.0:";
+    "The following message has been signed using Zebra 1.0:";
 const SIGNED_MESSAGE_SECOND_LINE: &str = "\"\"\"";
 const SIGNED_MESSAGE_INFIX_FIRST_LINE: &str = "\"\"\"";
 const SIGNED_MESSAGE_INFIX_SECOND_LINE: &str = "";
@@ -548,7 +548,7 @@ const SIGNED_MESSAGE_INFIX_THIRD_LINE: &str =
     "It was signed by someone with a private key corresponding to one of these fingerprints:";
 const SIGNED_MESSAGE_INFIX_FOURTH_LINE: &str = "";
 const SIGNED_MESSAGE_SUFFIX_FIRST_LINE: &str = "";
-const SIGNED_MESSAGE_SUFFIX_SECOND_LINE: &str = "To verify this signature, paste this entire message into the Spartacus app (starting with \"The following message\" and ending with this line).";
+const SIGNED_MESSAGE_SUFFIX_SECOND_LINE: &str = "To verify this signature, paste this entire message into the Zebra app (starting with \"The following message\" and ending with this line).";
 
 impl From<&SignedMessage> for String {
     fn from(m: &SignedMessage) -> String {
@@ -593,7 +593,7 @@ impl FromStr for SignedMessage {
         // Here's the same signed message from above, reproduced to make it easier to follow the
         // parsing algorithm:
         /*
-          (0)         The following message has been signed using Spartacus 1.0:
+          (0)         The following message has been signed using Zebra 1.0:
           (1)         """
           (2)         Test
           (M+2)       """
@@ -605,7 +605,7 @@ impl FromStr for SignedMessage {
           (M+5+N+1)
           (M+5+N+2)   9%Kq+rztr@G/UUZwbP>Z7>&V*av.io+RoI^sPb&o0SSi25=.[ils>3Ss7M8-B97#czy[:{B-4D+003E[Cp^?/zdP/q!aTb+yC+&9/L5.?QFe<N&)li1*NhhYPI[LV.AhV!}*:H2!bn+D4UbI41^@[(bwbQo.H-G&Twp7%IWfs-0069?!aTb+yC+&9/L5.?QFe<N&)li1*NhhYPI[LV.Aiwihg7Yu/b[sVh2J10vI*p]H[S*gekCK-Dmz-%@0n2*}o{}4Ieyfk]hs*-j2Bx<pnD&qD0LlxRmz:?5DJgr002SfwGTuGzdNI{0001ez/oCSBz>R%v}fBfv@Dkx=*PEupvK+z::^HobOkJ[Lr%JJ]puzjY<ELiZ7-&[RpE^E2h^OKLus#2kE%Cj7j%m<z=@>!2OE#</y5?y0002S=*PEupvK+z::^HobOkJ[Lr%JJ]puzjY<ELiZ7-*^4/Af&IVi)R2moE@aE(&{@:wiKNF*Rr0q<6G8k4s6L3zuhs!s8N&9nG(NCOYtp$me1aj.^gt$f7w#4*}O
           (M+5+N+3)
-          (M+5+N+4) To verify this signature, paste this entire message into the Spartacus app (starting with "The following message" and ending with this line).
+          (M+5+N+4) To verify this signature, paste this entire message into the Zebra app (starting with "The following message" and ending with this line).
         */
 
         // This could have been done with regular expressions or a parser library. I intentionally
@@ -725,12 +725,12 @@ mod tests {
     #[test]
     fn full_signatures_work() {
         let message = "SPARTACVSSVM";
-        let my_email = BoringAscii::from_bytes(b"spartacus@example.com").unwrap();
-        let my_name = "Spartacus";
+        let my_email = BoringAscii::from_bytes(b"zebra@example.com").unwrap();
+        let my_name = "Zebra";
         let my_id = Identity::new(my_name, &my_email).unwrap();
         let my_key = PrivateKey::new(my_id.clone());
 
-        let other_email = BoringAscii::from_bytes(b"notspartacus@example.com").unwrap();
+        let other_email = BoringAscii::from_bytes(b"notzebra@example.com").unwrap();
         let other_name = "Gaius";
         let other_id = Identity::new(other_name, &other_email).unwrap();
         let other_key = PrivateKey::new(other_id.clone());
@@ -746,8 +746,8 @@ mod tests {
 
     #[test]
     fn export_and_import_work() {
-        let my_email = BoringAscii::from_bytes(b"spartacus@example.com").unwrap();
-        let my_name = "Spartacus";
+        let my_email = BoringAscii::from_bytes(b"zebra@example.com").unwrap();
+        let my_name = "Zebra";
         let my_id = Identity::new(my_name, &my_email).unwrap();
         let my_key = PrivateKey::new(my_id.clone());
         let export = String::from(my_key.public());
@@ -766,12 +766,12 @@ mod tests {
     #[test]
     fn serialization_of_signed_message() {
         let message = "SPARTACVSSVM";
-        let my_email = BoringAscii::from_bytes(b"spartacus@example.com").unwrap();
-        let my_name = "Spartacus";
+        let my_email = BoringAscii::from_bytes(b"zebra@example.com").unwrap();
+        let my_name = "Zebra";
         let my_id = Identity::new(my_name, &my_email).unwrap();
         let my_key = PrivateKey::new(my_id.clone());
 
-        let other_email = BoringAscii::from_bytes(b"notspartacus@example.com").unwrap();
+        let other_email = BoringAscii::from_bytes(b"notzebra@example.com").unwrap();
         let other_name = "Gaius";
         let other_id = Identity::new(other_name, &other_email).unwrap();
         let other_key = PrivateKey::new(other_id.clone());
