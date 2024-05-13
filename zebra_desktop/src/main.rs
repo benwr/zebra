@@ -3,13 +3,16 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 
+use copypasta::{ClipboardContext, ClipboardProvider};
 use dioxus::prelude::*;
 use dioxus_desktop::WindowBuilder;
 use dioxus_free_icons::{
-    icons::go_icons::{GoCopy, GoPlusCircle, GoSearch, GoShieldCheck, GoShieldLock, GoTrash, GoUnverified, GoVerified},
+    icons::go_icons::{
+        GoCopy, GoPlusCircle, GoSearch, GoShieldCheck, GoShieldLock, GoTrash, GoUnverified,
+        GoVerified,
+    },
     Icon,
 };
-use copypasta::{ClipboardContext, ClipboardProvider};
 
 use boringascii::BoringAscii;
 use zebra::about::About;
@@ -25,7 +28,7 @@ fn make_config() -> dioxus_desktop::Config {
                     width: 900.0,
                     height: 600.0,
                 },
-            ))
+            )),
     )
 }
 
@@ -1031,7 +1034,7 @@ fn SignAndCopy() -> Element {
         .collect::<Vec<_>>();
     let selected_private_signer = use_context::<Signal<SelectedPrivateSigner>>();
     let k = selected_private_signer.read().deref().0.clone();
-    rsx!{
+    rsx! {
         button {
             onclick: move |_| {
                 if let Ok(ref mut db) = dbresult.write().deref_mut() {
@@ -1106,7 +1109,7 @@ fn VerificationResults(props: VerificationResultsProps) -> Element {
     let signed_message = props.signed_message.message.clone();
 
     if props.signed_message.verify() {
-        rsx!{
+        rsx! {
             b {
                 "Message:"
             }

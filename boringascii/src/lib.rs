@@ -64,9 +64,7 @@ impl TryFrom<&str> for BoringAscii {
 // We serialize to a series of bytes, which means that on deserialization we just have to do the
 // exact same range check as we do on from_bytes.
 impl BorshDeserialize for BoringAscii {
-    fn deserialize_reader<R: std::io::Read>(
-        r: &mut R,
-    ) -> Result<BoringAscii, std::io::Error> {
+    fn deserialize_reader<R: std::io::Read>(r: &mut R) -> Result<BoringAscii, std::io::Error> {
         let bytes = <Vec<u8>>::deserialize_reader(r)?;
         BoringAscii::from_bytes(&bytes).ok_or(std::io::Error::new(
             std::io::ErrorKind::Other,
@@ -148,12 +146,7 @@ mod tests {
         assert!(BoringAscii::from_bytes(&[b'\x1f']) == None);
         assert!(BoringAscii::from_bytes(&[b' ']) == None);
         assert!(BoringAscii::from_bytes(&[b'\n']) == None);
-        assert!(
-            BoringAscii::from_bytes("Hi".as_bytes())
-                == Some(BoringAscii(b"Hi".to_vec()))
-        );
-        assert!(
-            BoringAscii::from_bytes(&[b'!']) == Some(BoringAscii(b"!".to_vec()))
-        );
+        assert!(BoringAscii::from_bytes("Hi".as_bytes()) == Some(BoringAscii(b"Hi".to_vec())));
+        assert!(BoringAscii::from_bytes(&[b'!']) == Some(BoringAscii(b"!".to_vec())));
     }
 }

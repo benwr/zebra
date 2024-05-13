@@ -189,8 +189,7 @@ impl Database {
         // We've already authenticated this file, since age is AEAD when using a passphrase. So we
         // can be relatively sure that it's not crafted to DoS us or anything.
         reader.read_to_end(&mut bytes)?;
-        let ZebraDatabaseContents::V0(res) =
-            BorshDeserialize::deserialize(&mut bytes.as_ref())?;
+        let ZebraDatabaseContents::V0(res) = BorshDeserialize::deserialize(&mut bytes.as_ref())?;
         Ok((res, pw))
     }
 
@@ -274,11 +273,7 @@ impl Database {
         self.write_contents(contents, pw)
     }
 
-    pub fn new_private_key(
-        &mut self,
-        name: &str,
-        email: &BoringAscii,
-    ) -> std::io::Result<()> {
+    pub fn new_private_key(&mut self, name: &str, email: &BoringAscii) -> std::io::Result<()> {
         let identity = Identity::new(name, email).ok_or(std::io::Error::new(
             std::io::ErrorKind::Other,
             "Could not construct Identity",
@@ -311,4 +306,3 @@ impl Database {
         self.write_contents(contents, pw)
     }
 }
-

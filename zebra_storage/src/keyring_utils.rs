@@ -1,6 +1,6 @@
 use age::secrecy::SecretString;
 
-use crate::dbfile_utils::{SERVICE_NAME, get_username};
+use crate::dbfile_utils::{get_username, SERVICE_NAME};
 
 // On Linux, it's important that this uses the SecretService backend, since the keyutils storage
 // system doesn't allow for indefinite key storage. Fortunately the SecretService backend is the

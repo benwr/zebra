@@ -1,4 +1,4 @@
-# Zebra: an app for creating and verifying ring signatures
+ # Zebra: an app for creating and verifying ring signatures
 ![](zebra_desktop/zebra_head.png)
 
 ## What are ring signatures?

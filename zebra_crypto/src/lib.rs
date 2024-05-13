@@ -4,8 +4,8 @@ use ristretto::{RistrettoPoint, Scalar};
 
 use std::str::FromStr;
 
-use borsh::{BorshDeserialize, BorshSerialize};
 use boringascii::BoringAscii;
+use borsh::{BorshDeserialize, BorshSerialize};
 use sha3::{Digest, Sha3_256, Sha3_512};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
@@ -219,6 +219,44 @@ impl BorshDeserialize for Identity {
     }
 }
 
+/// To allow forward compatibility, we excplicitly include a version string in both keys and
+/// messages. Each element of this enum corresponds to an ASCII string via the listed constants,
+/// and cannot contain angle bracket characters for the public key format to be parsable. Newlines
+/// and other whitespace or control characters are also not allowed, while spaces are ok.
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Zeroize, ZeroizeOnDrop, BorshSerialize, BorshDeserialize)]
+#[borsh(use_discriminant = true)]
+#[repr(u8)]
+enum ZebraVersion {
+    ZebraOneBeta = 0,
+}
+
+const ZEBRA_ONE_BETA: &str = "Zebra 1.0 Beta";
+
+impl From<&ZebraVersion> for String {
+    fn from(value: &ZebraVersion) -> Self {
+        match value {
+            ZebraVersion::ZebraOneBeta => String::from(ZEBRA_ONE_BETA),
+        }
+    }
+}
+
+impl ToString for ZebraVersion {
+    fn to_string(&self) -> String {
+        From::from(self)
+    }
+}
+
+impl std::str::FromStr for ZebraVersion {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            ZEBRA_ONE_BETA => Ok(ZebraVersion::ZebraOneBeta),
+            _ => Err(()),
+        }
+    }
+}
+
 /// A complete public key, containing all the information required to share the key with others, to
 /// store it to disk, or to take part in a ring signature or verification. The attestation of a
 /// constructed PublicKey object *may not be valid*. This must be checked before relying on the
@@ -228,6 +266,7 @@ impl BorshDeserialize for Identity {
 )]
 pub struct PublicKey {
     holder: Identity,
+    version: ZebraVersion,
     keypoint: RistrettoPoint,
 
     // We want a public key to be a simple package that can be imported into an app without
@@ -291,12 +330,15 @@ impl PublicKey {
 }
 
 // The ASCII format for a public key looks like:
-// [Ben Weinstein-Raun <b@w-r.me> AC9AD3F7086D6B34F91AD868D332A34CCB75E2CFD6CCDB99596DA0534CF8C23B 6F2CFB8088A7D3FCF20E0E801BAF0599649D2366D90AC28214EEAC4F23DD8B0801000000AC9AD3F7086D6B34F91AD868D332A34CCB75E2CFD6CCDB99596DA0534CF8C23B82E6357B982AD71F5E8E34FC83F56218225C88A1E2582C4EEC2D7A2A505DFC08]
+// [Ben Weinstein-Raun <b@w-r.me> <Zebra 1.0 Beta> AC9AD3F7086D6B34F91AD868D332A34CCB75E2CFD6CCDB99596DA0534CF8C23B 6F2CFB8088A7D3FCF20E0E801BAF0599649D2366D90AC28214EEAC4F23DD8B0801000000AC9AD3F7086D6B34F91AD868D332A34CCB75E2CFD6CCDB99596DA0534CF8C23B82E6357B982AD71F5E8E34FC83F56218225C88A1E2582C4EEC2D7A2A505DFC08]
 // The parts here are:
 // - open square bracket ("[")
 // - the name (which can contain any non-control utf-8 characters)
 // - space and open angle bracket (" <")
 // - the email (which can contain only non-whitespace non-control ascii characters)
+// - close angle bracket and space ("> ")
+// - space and open angle bracket (" <")
+// - the version string (which must match one of the version strings listed above exactly)
 // - close angle bracket and space ("> ")
 // - the hex-encoded compressed ristretto point (64 uppercase hex digits)
 // - space (" ")
@@ -306,11 +348,11 @@ impl PublicKey {
 // Since the name can contain nearly-arbitrary characters, the key must be parsed from the back as
 // well as the front: The first character must be an open angle bracket, but reading in that
 // direction, it's never clear when the name ends. The string must *end* with the fixed-sized hex
-// ascii attestation and public key, and just before that is an email address that cannot contain
-// spaces, in turn preceded by a space character. Thus, this encoding is bijective and unambiguous
-// in both directions. Also, because the name and email address cannot contain newlines, we can
-// encode lists of public keys as
-// newline-separated strings.
+// ascii attestation and public key, just before that is a version string enclosed by angle brackts,
+// and just before that is an email address that cannot contain spaces, in turn preceded by a space
+// character. Thus, this encoding is bijective and unambiguous in both directions. Also, because the 
+// name, email address and version string cannot contain newlines, we can encode lists of public keys 
+// as newline-separated strings.
 impl From<PublicKey> for String {
     fn from(k: PublicKey) -> String {
         let mut buffer = vec![];
@@ -318,9 +360,10 @@ impl From<PublicKey> for String {
             .serialize(&mut buffer)
             .expect("Serialization into unbounded vec failed");
         format!(
-            "[{} <{}> {} {}]",
+            "[{} <{}> <{}> {} {}]",
             k.holder.name,
             k.holder.email,
+            k.version.to_string(),
             hex::encode_upper(k.keypoint.compress()),
             hex::encode_upper(buffer)
         )
@@ -333,7 +376,7 @@ impl FromStr for PublicKey {
         use regex::Regex;
         // This regex should exactly match the description above, and not allow any matches that
         // don't fit the pattern described. Fortunately it's pretty simple.
-        let re = match Regex::new(r"^\[([^\n]*) <([!-~]*)> ([0-9A-F]{64}) ([0-9A-F]{200})\]$") {
+        let re = match Regex::new(r"^\[([^\n]*) <([!-~]*)> <Zebra 1.0 Beta> ([0-9A-F]{64}) ([0-9A-F]{200})\]$") {
             Ok(re) => re,
             Err(_) => return Err(()),
         };
@@ -362,6 +405,7 @@ impl FromStr for PublicKey {
 
         let res = PublicKey {
             holder: id,
+            version: ZebraVersion::ZebraOneBeta,
             keypoint: RistrettoPoint(keypoint),
             holder_attestation: attestation,
         };
@@ -407,6 +451,7 @@ impl PrivateKey {
     pub fn public(&self) -> PublicKey {
         PublicKey {
             holder: self.holder.clone(),
+            version: ZebraVersion::ZebraOneBeta,
             keypoint: RistrettoPoint::mul_base(&self.key),
             holder_attestation: self.holder_attestation.clone(),
         }
@@ -539,8 +584,7 @@ impl SignedMessage {
 // that specific library. The implementation can be seen here:
 // https://github.com/decafbad/z85/blob/ca669a0682b0a559b883f770c93e746f6a7e3ebe/src/internal.rs#L51
 
-const SIGNED_MESSAGE_FIRST_LINE: &str =
-    "The following message has been signed using Zebra 1.0:";
+const SIGNED_MESSAGE_FIRST_LINE: &str = "The following message has been signed using Zebra 1.0:";
 const SIGNED_MESSAGE_SECOND_LINE: &str = "\"\"\"";
 const SIGNED_MESSAGE_INFIX_FIRST_LINE: &str = "\"\"\"";
 const SIGNED_MESSAGE_INFIX_SECOND_LINE: &str = "";
@@ -754,11 +798,13 @@ mod tests {
         let import = PublicKey::from_str(&export);
         let PublicKey {
             ref holder,
+            ref version,
             ref keypoint,
             ref holder_attestation,
         } = import.unwrap();
 
         assert!(holder == &my_key.holder);
+        assert!(version == &my_key.public().version);
         assert!(keypoint == &my_key.public().keypoint);
         assert!(holder_attestation == holder_attestation);
     }
