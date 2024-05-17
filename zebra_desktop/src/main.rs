@@ -16,7 +16,7 @@ use dioxus_free_icons::{
 
 use boringascii::BoringAscii;
 use zebra::about::About;
-use zebra_crypto::{PublicKey, SignedMessage};
+use zebra_crypto::{PublicKey, SignatureParseError, SignedMessage};
 use zebra_storage::{default_db_path, Database, VerificationInfo};
 
 fn make_config() -> dioxus_desktop::Config {
@@ -55,7 +55,8 @@ enum ActiveTab {
 struct NewPrivateName(String);
 struct NewPrivateEmail(BoringAscii);
 struct TextToSign(String);
-struct MessageToVerify(Option<SignedMessage>);
+/// None is "there was no message pasted" and "Err(e)" is "the message failed to parse"
+struct MessageToVerify(Option<Result<SignedMessage, SignatureParseError>>);
 struct SelectedPrivateSigner(Option<PublicKey>);
 struct SelectedPublicSigners(BTreeSet<PublicKey>);
 
@@ -1058,15 +1059,11 @@ fn PasteAndVerify() -> Element {
         button {
             onclick: move |_| {
                 let mut message_to_verify = message_to_verify.write();
-                if let Some(message) = ClipboardContext::new()
+                let message = ClipboardContext::new()
                     .and_then(|mut ctx| ctx.get_contents())
                         .ok()
-                        .and_then(|m| SignedMessage::from_str(&m).ok())
-                {
-                    *message_to_verify = MessageToVerify(Some(message));
-                } else {
-                    *message_to_verify = MessageToVerify(None);
-                }
+                        .map(|m| SignedMessage::from_str(&m));
+                *message_to_verify = MessageToVerify(message);
             },
             "Verify Message From Clipboard"
         }
@@ -1204,9 +1201,9 @@ fn VerificationResults(props: VerificationResultsProps) -> Element {
 fn Verify() -> Element {
     let message_to_verify = use_context::<Signal<MessageToVerify>>();
     let message_to_verify_val = message_to_verify.read().deref().0.clone();
-
-    if let Some(signed_message) = message_to_verify_val {
-        rsx! {
+    match message_to_verify_val {
+        // the message parsed correctly
+        Some(Ok(signed_message)) => rsx! {
             div {
                 class: "toolbar",
                 Icon {
@@ -1226,9 +1223,27 @@ fn Verify() -> Element {
                     }
                 }
             }
-        }
-    } else {
-        rsx! {
+        },
+        // the message failed to parse correctly
+        Some(Err(_)) => rsx! {
+            div {
+                class: "toolbar",
+                Icon {
+                    class: "action_icon",
+                    width: 15,
+                    height: 15,
+                    fill: "black",
+                    icon: GoShieldCheck,
+                }
+                PasteAndVerify {}
+            },
+            div {
+                class: "data",
+                "parse failed"
+            }
+        },
+        // no message was provided
+        None => rsx! {
             div {
                 class: "toolbar",
                 Icon {

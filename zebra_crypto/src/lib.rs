@@ -533,7 +533,7 @@ impl SignedMessage {
 // A Zebra-signed message in ASCII format looks like this (lines numbered for convenience):
 
 /*
-(0)         The following message has been signed using Zebra 1.0:
+(0)         The following message has been signed using Zebra 1.0 Beta:
 (1)         """
 (2)         Test
 (M+2)       """
@@ -584,7 +584,7 @@ impl SignedMessage {
 // that specific library. The implementation can be seen here:
 // https://github.com/decafbad/z85/blob/ca669a0682b0a559b883f770c93e746f6a7e3ebe/src/internal.rs#L51
 
-const SIGNED_MESSAGE_FIRST_LINE: &str = "The following message has been signed using Zebra 1.0:";
+const SIGNED_MESSAGE_FIRST_LINE: &str = "The following message has been signed using Zebra 1.0 Beta:";
 const SIGNED_MESSAGE_SECOND_LINE: &str = "\"\"\"";
 const SIGNED_MESSAGE_INFIX_FIRST_LINE: &str = "\"\"\"";
 const SIGNED_MESSAGE_INFIX_SECOND_LINE: &str = "";
@@ -629,15 +629,22 @@ impl From<&SignedMessage> for String {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub enum SignatureParseError {
+    ParseError(),
+    NotParseError(i8),
+}
+use SignatureParseError::*;
+
 impl FromStr for SignedMessage {
-    type Err = ();
+    type Err = SignatureParseError;
     /// IMPORTANT NOTE: Success of this method does *not* imply a valid signature, only a
     /// syntactically correct one.
-    fn from_str(s: &str) -> Result<SignedMessage, ()> {
+    fn from_str(s: &str) -> Result<SignedMessage, SignatureParseError> {
         // Here's the same signed message from above, reproduced to make it easier to follow the
         // parsing algorithm:
         /*
-          (0)         The following message has been signed using Zebra 1.0:
+          (0)         The following message has been signed using Zebra 1.0 Beta:
           (1)         """
           (2)         Test
           (M+2)       """
@@ -660,12 +667,12 @@ impl FromStr for SignedMessage {
         if lines.len() < 12 {
             // The shortest allowed signed message has a single signer and one (possibly empty)
             // line of message text. This corresponds to M = N = 1, so 1 + 5 + 1 + 4 + 1 = 12 lines.
-            return Err(());
+            return Err(ParseError());
         }
 
         // Check the fixed prefix (lines 0 and 1)
         if lines[0] != SIGNED_MESSAGE_FIRST_LINE || lines[1] != SIGNED_MESSAGE_SECOND_LINE {
-            return Err(());
+            return Err(ParseError());
         }
         // Check the fixed suffix (lines M+5+N+3 and M+5+N+4; a.k.a. lines.len() - 2 and
         // lines.len() - 1. Then, also check the blank line before the signature data (M+5+N+1 =
@@ -674,20 +681,20 @@ impl FromStr for SignedMessage {
             || lines[lines.len() - 2] != SIGNED_MESSAGE_SUFFIX_FIRST_LINE
             || !lines[lines.len() - 4].is_empty()
         {
-            return Err(());
+            return Err(ParseError());
         }
 
         // extract data from the signature line (line M+5+N+2 = lines.len() - 3)
         let signature_bytes = match z85::decode(lines[lines.len() - 3]) {
             Ok(val) => val,
-            Err(_) => return Err(()),
+            Err(_) => return Err(ParseError()),
         };
 
         let (challenge, ring) = match <(Scalar, Vec<(PublicKey, Scalar)>)>::deserialize(
             &mut signature_bytes.as_slice(),
         ) {
             Ok(x) => x,
-            Err(_) => return Err(()),
+            Err(_) => return Err(ParseError()),
         };
 
         // Verify that the ring in the signature data exactly matches the data in the text:
@@ -701,7 +708,7 @@ impl FromStr for SignedMessage {
                     signer.fingerprint()
                 )
             {
-                return Err(());
+                return Err(ParseError());
             }
         }
 
@@ -712,7 +719,7 @@ impl FromStr for SignedMessage {
             || lines[lines.len() - 5 - ring.len() - 2] != SIGNED_MESSAGE_INFIX_SECOND_LINE
             || lines[lines.len() - 5 - ring.len() - 3] != SIGNED_MESSAGE_INFIX_FIRST_LINE
         {
-            return Err(());
+            return Err(ParseError());
         }
 
         Ok(SignedMessage {
