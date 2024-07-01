@@ -38,6 +38,16 @@
       .material-button:hover {
         background-color: #3700b3;
       }
+      .message {
+        font-size: 16px;
+        margin-top: 10px;
+      }
+      .valid {
+        color: green;
+      }
+      .invalid {
+        color: red;
+      }
     </style>
   </head>
   <body>
@@ -49,8 +59,22 @@
     </div>
     <div style="margin: 20px;">
       <textarea id="signature" class="material-input" rows="4" placeholder="Enter signature here..."></textarea>
-      <button class="material-button" onclick="verifySignature(document.getElementById('signature').value)">Verify signature</button>
+      <button class="material-button" onclick="verifySignatureAndShowMessage()">Verify signature</button>
+      <div id="message" class="message"></div>
     </div>
+    <script>
+      function verifySignatureAndShowMessage() {
+        const signature = document.getElementById('signature').value;
+        const isValid = verifySignature(signature);
+        const messageElement = document.getElementById('message');
+        if (isValid) {
+          messageElement.textContent = 'Valid Signature!';
+          messageElement.className = 'message valid';
+        } else {
+          messageElement.textContent = 'Invalid Signature!';
+          messageElement.className = 'message invalid';
+        }
+      }
+    </script>
   </body>
 </html>
-
