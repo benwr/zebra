@@ -16,6 +16,28 @@
       body {
         font-family: Verdana, sans-serif;
       }
+      .material-input {
+        width: 100%;
+        padding: 10px;
+        margin: 20px 0;
+        box-sizing: border-box;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 16px;
+      }
+      .material-button {
+        width: 100%;
+        padding: 10px;
+        background-color: #6200ea;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      .material-button:hover {
+        background-color: #3700b3;
+      }
     </style>
   </head>
   <body>
@@ -25,5 +47,10 @@
       <img src="android-chrome-192x192.png" alt="Zebrasign Logo" style="vertical-align: middle; width: 50px; height: 50px;">
       <span style="font-size: 24px; font-weight: bold; vertical-align: middle;">Zebrasign</span>
     </div>
+    <div style="margin: 20px;">
+      <textarea id="signature" class="material-input" rows="4" placeholder="Enter signature here..."></textarea>
+      <button class="material-button" onclick="verifySignature(document.getElementById('signature').value)">Verify signature</button>
+    </div>
   </body>
 </html>
+
