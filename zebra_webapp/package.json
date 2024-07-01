@@ -1,7 +1,7 @@
 {
-  "name": "create-wasm-app",
+  "name": "zebra_webapp",
   "version": "0.1.0",
-  "description": "create an app to consume rust-generated wasm packages",
+  "description": "Zebrasign Webapp - Verify Secure Ring-Signatures on the Web!",
   "main": "index.js",
   "bin": {
     "create-wasm-app": ".bin/create-wasm-app.js"
@@ -20,12 +20,7 @@
     "rust",
     "webpack"
   ],
-  "author": "Ashley Williams <ashley666ashley@gmail.com>",
-  "license": "(MIT OR Apache-2.0)",
-  "bugs": {
-    "url": "https://github.com/rustwasm/create-wasm-app/issues"
-  },
-  "homepage": "https://github.com/rustwasm/create-wasm-app#readme",
+  "author": "Simon Baars <simon.mailadres@gmail.com>",
   "dependencies": {
     "zebra_wasm": "file:../zebra_wasm/pkg"
   },
