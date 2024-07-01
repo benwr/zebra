@@ -1,5 +1,7 @@
+mod utils;
+
 use wasm_bindgen::prelude::*;
-use zebra_crypto::{PublicKey, Signature, Scalar, RistrettoPoint, SignedMessage};
+use zebra_crypto::{SignedMessage};
 use std::str::FromStr;
 
 #[cfg(feature = "wee_alloc")]
@@ -13,3 +15,14 @@ pub fn verify_signature(message: &str) -> bool {
         Err(_) => false,
     }
 }
+
+#[wasm_bindgen]
+extern "C" {
+    fn alert(s: &str);
+}
+
+#[wasm_bindgen]
+pub fn greet() {
+    alert("Hello, wasm-test!");
+}
+
