@@ -3,6 +3,7 @@ import nacl from "tweetnacl";
 import naclUtil from "tweetnacl-util";
 import crypto from "crypto-browserify";
 import testMessage from "./message";
+import testMessage3 from "./message3";
 
 function hashMessageAndRing(message, keys) {
   const hash = crypto.createHash('sha512');
@@ -45,7 +46,7 @@ function testEncrypt() {
 
 function App() {
   useEffect(() => {
-    testMessage();
+    testMessage3();
   }, []);
   return (
     <div>
