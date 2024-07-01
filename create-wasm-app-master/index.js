@@ -1,7 +1,5 @@
 import * as wasm from "zebra_wasm";
 
-wasm.greet();
-
 const messageString = `The following message has been signed using Zebra 1.0 Beta:
 """
 The real question we should be asking: WHY is the earth round? WHY is it not flat?
