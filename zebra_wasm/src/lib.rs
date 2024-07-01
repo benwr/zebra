@@ -1,5 +1,3 @@
-mod utils;
-
 use wasm_bindgen::prelude::*;
 use zebra_crypto::{SignedMessage};
 use std::str::FromStr;
@@ -21,6 +19,7 @@ extern "C" {
     fn alert(s: &str);
 }
 
+// Keeping this around for testing purposes
 #[wasm_bindgen]
 pub fn greet() {
     alert("Hello, wasm-test!");
