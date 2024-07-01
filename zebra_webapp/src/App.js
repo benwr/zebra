@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import * as wasm from "./pkg/zebra_wasm_bg"
+import * as wasm from "zebra_wasm";
 
 function App() {
   useEffect(() => {
