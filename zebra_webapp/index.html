@@ -24,6 +24,7 @@
         border: 1px solid #ccc;
         border-radius: 4px;
         font-size: 16px;
+        height: 30vh;
       }
       .material-button {
         width: 100%;
@@ -48,11 +49,32 @@
       .invalid {
         color: red;
       }
+      table {
+        width: calc(100% - 40px);
+        max-width: 800px;
+        margin: 20px auto;
+        border-collapse: collapse;
+      }
+      th, td {
+        padding: 10px;
+        text-align: left;
+      }
+      th {
+        font-weight: bold;
+      }
+      tr {
+        border: none;
+      }
     </style>
   </head>
   <body>
     <noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
-    <script src="./bootstrap.js"></script>
+    <script>
+      const timestamp = new Date().getTime();
+      const script = document.createElement('script');
+      script.src = `./bootstrap.js?v=${timestamp}`;
+      document.head.appendChild(script);
+    </script>
     <div style="text-align: center; margin-top: 20px;">
       <img src="android-chrome-192x192.png" alt="Zebrasign Logo" style="vertical-align: middle; width: 50px; height: 50px;">
       <span style="font-size: 24px; font-weight: bold; vertical-align: middle;">Zebrasign</span>
@@ -61,6 +83,13 @@
       <textarea id="signature" class="material-input" rows="4" placeholder="Enter signature here..."></textarea>
       <button class="material-button" onclick="verifySignatureAndShowMessage()">Verify signature</button>
       <div id="message" class="message"></div>
+      <div id="message-details" style="display: none; margin-top: 20px;">
+        <b>Message:</b><br/>
+        <span id="message-text"></span>
+        <br><br>
+        <b>This message was signed by someone with the private key associated with one of these verified identities:</b><br/>
+        <div id="fingerprints-table"></div>
+      </div>
     </div>
     <script>
       function verifySignatureAndShowMessage() {
@@ -68,11 +97,43 @@
         const isValid = verifySignature(signature);
         const messageElement = document.getElementById('message');
         if (isValid) {
+          const fingerprintsElement = document.getElementById('fingerprints-table');
           messageElement.textContent = 'Valid Signature!';
           messageElement.className = 'message valid';
+          
+          const messageStart = signature.indexOf('"""') + 3;
+          const messageEnd = signature.lastIndexOf('"""');
+          const message = signature.substring(messageStart, messageEnd).trim();
+          document.getElementById('message-text').textContent = message;
+          
+          const lines = signature.trim().split('\n');
+          const fingerprints = [];
+          for (let i = lines.length - 5; i > 5; i--) {
+            const line = lines[i].trim();
+            if (line) {
+              const match = line.match(/(.*) <(.*)> (.*)/);
+              if (match) {
+                fingerprints.push({
+                  name: match[1],
+                  email: match[2],
+                  fingerprint: match[3]
+                });
+              }
+            }
+          }
+          
+          let tableHTML = '<table><thead><tr><th>Name</th><th>Email</th><th>Fingerprint</th></tr></thead><tbody>';
+          fingerprints.forEach(fp => {
+            tableHTML += `<tr><td>${fp.name}</td><td>${fp.email}</td><td>${fp.fingerprint}</td></tr>`;
+          });
+          tableHTML += '</tbody></table>';
+          
+          fingerprintsElement.innerHTML = tableHTML;
+          document.getElementById('message-details').style.display = 'block';
         } else {
           messageElement.textContent = 'Invalid Signature!';
           messageElement.className = 'message invalid';
+          document.getElementById('message-details').style.display = 'none';
         }
       }
     </script>
