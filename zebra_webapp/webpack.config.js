@@ -7,8 +7,14 @@ module.exports = {
     path: path.resolve(__dirname, "dist"),
     filename: "bootstrap.js",
   },
-  mode: "development",
+  mode: "production",
   plugins: [
-    new CopyWebpackPlugin(['index.html'])
+    new CopyWebpackPlugin([
+      'index.html',
+      'manifest.json',
+      'favicon.ico',
+      'android-chrome-192x192.png',
+      'android-chrome-512x512.png'
+    ])
   ],
 };
