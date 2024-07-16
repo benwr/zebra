@@ -45,6 +45,8 @@
       }
       .valid {
         color: green;
+        font-weight: bold;
+        font-size: 18px;
       }
       .invalid {
         color: red;
@@ -64,6 +66,16 @@
       }
       tr {
         border: none;
+      }
+      .code-block {
+        background-color: #f5f5f5;
+        border: 1px solid #ddd;
+        padding: 10px;
+        margin: 10px 0;
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        line-height: 1.5;
+        overflow: auto;
       }
     </style>
   </head>
@@ -85,7 +97,8 @@
       <div id="message" class="message"></div>
       <div id="message-details" style="display: none; margin-top: 20px;">
         <b>Message:</b><br/>
-        <span id="message-text"></span>
+        <br>
+        <pre class="code-block"><code id="message-text"></code></pre>
         <br><br>
         <b>This message was signed by someone with the private key associated with one of these verified identities:</b><br/>
         <div id="fingerprints-table"></div>
