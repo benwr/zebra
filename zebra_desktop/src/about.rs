@@ -26,8 +26,8 @@ pub fn About() -> Element {
                 class: "copyright_info",
                 "All other content is written by Ben Weinstein-Raun; copyright assigned to Kurt Brown. Source code available at "
                 a {
-                    href: "https://github.com/benwr/zebra",
-                    "https://github.com/benwr/zebra"
+                    href: "https://github.com/LoadingScreen/zebra",
+                    "https://github.com/LoadingScreen/zebra"
                 }
             }
         }
