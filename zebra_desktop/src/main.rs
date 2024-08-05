@@ -61,7 +61,7 @@ struct SelectedPrivateSigner(Option<PublicKey>);
 struct SelectedPublicSigners(BTreeSet<PublicKey>);
 /// None is "there was no key imported" and "Err(e)" is "the key failed to import"
 struct ImportKeyResult(Option<Result<(), String>>);
-struct CopiedToClipboard(bool);
+struct CopiedToClipboard(Option<PublicKey>);
 
 #[derive(Clone)]
 struct TableFilter {
@@ -147,7 +147,7 @@ fn App() -> Element {
     use_context_provider(|| Signal::new(TextToSign(String::new())));
     use_context_provider(|| Signal::new(MessageToVerify(None)));
     use_context_provider(|| Signal::new(SelectedPublicSigners(BTreeSet::new())));
-    use_context_provider(|| Signal::new(CopiedToClipboard(false)));
+    use_context_provider(|| Signal::new(CopiedToClipboard(None)));
     use_context_provider(|| {
         Signal::new(SignerFilter(TableFilter {
             name: String::new(),
@@ -678,7 +678,7 @@ fn MyKeys() -> Element {
                                                     e.stop_propagation();
                                                     if let Ok(mut ctx) = ClipboardContext::new() {
                                                         if ctx.set_contents(k_copy.clone().into()).is_ok() {
-                                                            *copied_to_clipboard.write() = CopiedToClipboard(true);
+                                                            *copied_to_clipboard.write() = CopiedToClipboard(Some(k_copy.clone()));
                                                         }
                                                     }
                                                 }
@@ -689,7 +689,7 @@ fn MyKeys() -> Element {
                                                 fill: "black",
                                                 icon: GoCopy,
                                             }
-                                            if copied_to_clipboard.read().0 {
+                                            if copied_to_clipboard.read().0 == Some(k.clone()) {
                                                 Icon {
                                                     width: 15,
                                                     height: 15,
@@ -825,7 +825,7 @@ fn OtherKeys() -> Element {
                                                     e.stop_propagation();
                                                     if let Ok(mut ctx) = ClipboardContext::new() {
                                                         if ctx.set_contents(k_copy.0.clone().into()).is_ok() {
-                                                            *copied_to_clipboard.write() = CopiedToClipboard(true);
+                                                            *copied_to_clipboard.write() = CopiedToClipboard(Some(k_copy.0.clone()));
                                                         }
                                                     }
                                                 }
@@ -836,7 +836,7 @@ fn OtherKeys() -> Element {
                                                 fill: "black",
                                                 icon: GoCopy,
                                             }
-                                            if copied_to_clipboard.read().0 {
+                                            if copied_to_clipboard.read().0 == Some(k.0.clone()) {
                                                 Icon {
                                                     width: 15,
                                                     height: 15,
@@ -1090,7 +1090,7 @@ fn SignAndCopy() -> Element {
                         if let Some(k) = &k {
                             if let Ok(signed_message) = db.sign(&text_to_sign_val, k, &current_signers) {
                                 if ctx.set_contents(String::from(&signed_message)).is_ok() {
-                                    *copied_to_clipboard.write() = CopiedToClipboard(true);
+                                    *copied_to_clipboard.write() = CopiedToClipboard(Some(k.clone()));
                                 }
                             }
                         }
@@ -1099,7 +1099,7 @@ fn SignAndCopy() -> Element {
             },
             "Sign and Copy to Clipboard"
         }
-        if copied_to_clipboard.read().0 {
+        if copied_to_clipboard.read().0 == k {
             Icon {
                 width: 15,
                 height: 15,
@@ -1318,3 +1318,4 @@ fn Verify() -> Element {
         }
     }
 }
+
