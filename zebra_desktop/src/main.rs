@@ -62,6 +62,7 @@ struct SelectedPublicSigners(BTreeSet<PublicKey>);
 /// None is "there was no key imported" and "Err(e)" is "the key failed to import"
 struct ImportKeyResult(Option<Result<(), String>>);
 struct CopiedToClipboard(Option<PublicKey>);
+struct SignAndCopyStatus(bool);
 
 #[derive(Clone)]
 struct TableFilter {
@@ -148,6 +149,7 @@ fn App() -> Element {
     use_context_provider(|| Signal::new(MessageToVerify(None)));
     use_context_provider(|| Signal::new(SelectedPublicSigners(BTreeSet::new())));
     use_context_provider(|| Signal::new(CopiedToClipboard(None)));
+    use_context_provider(|| Signal::new(SignAndCopyStatus(false)));
     use_context_provider(|| {
         Signal::new(SignerFilter(TableFilter {
             name: String::new(),
@@ -959,6 +961,7 @@ fn Sign() -> Element {
 
     let mut text_to_sign = use_context::<Signal<TextToSign>>();
     let text_to_sign_val = text_to_sign.read().deref().0.clone();
+    let mut sign_and_copy_status = use_context::<Signal<SignAndCopyStatus>>();
 
     let filter = use_context::<Signal<SignerFilter>>();
 
@@ -986,7 +989,10 @@ fn Sign() -> Element {
         br {}
         textarea {
             value: "{text_to_sign_val}",
-            oninput: move |evt| *text_to_sign.write() = TextToSign(evt.value().clone()),
+            oninput: move |evt| {
+                *text_to_sign.write() = TextToSign(evt.value().clone());
+                *sign_and_copy_status.write() = SignAndCopyStatus(false);
+            },
             class: "sign_text"
         }
         br {}
@@ -1084,7 +1090,7 @@ fn SignAndCopy() -> Element {
         .into_iter()
         .collect::<Vec<_>>();
     let selected_private_signer = use_context::<Signal<SelectedPrivateSigner>>();
-    let mut copied_to_clipboard = use_context::<Signal<CopiedToClipboard>>();
+    let mut sign_and_copy_status = use_context::<Signal<SignAndCopyStatus>>();
     let k = selected_private_signer.read().deref().0.clone();
     rsx! {
         button {
@@ -1094,7 +1100,7 @@ fn SignAndCopy() -> Element {
                         if let Some(k) = &k {
                             if let Ok(signed_message) = db.sign(&text_to_sign_val, k, &current_signers) {
                                 if ctx.set_contents(String::from(&signed_message)).is_ok() {
-                                    *copied_to_clipboard.write() = CopiedToClipboard(Some(k.clone()));
+                                    *sign_and_copy_status.write() = SignAndCopyStatus(true);
                                 }
                             }
                         }
@@ -1103,7 +1109,7 @@ fn SignAndCopy() -> Element {
             },
             "Sign and Copy to Clipboard"
         }
-        if copied_to_clipboard.read().0 == k {
+        if sign_and_copy_status.read().0 {
             Icon {
                 width: 15,
                 height: 15,
@@ -1322,6 +1328,7 @@ fn Verify() -> Element {
         }
     }
 }
+
 
 
 
