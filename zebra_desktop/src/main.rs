@@ -768,6 +768,19 @@ fn OtherKeys() -> Element {
                 "Import Public Key from Clipboard"
             }
         },
+        {
+            if let Some(Err(e)) = import_key_result.read().0.clone() {
+                rsx! {
+                    div {
+                        class: "data",
+                        style: "height: 100px;",
+                        "Error: {e}"
+                    }
+                }
+            } else {
+                rsx! { "" }
+            }
+        },
         div {
             class: "data",
             table {
@@ -854,15 +867,6 @@ fn OtherKeys() -> Element {
                         }
                     }
                 }
-            }
-        }
-        div {
-            class: "data",
-            match import_key_result.read().0.clone() {
-                Some(Err(e)) => rsx! {
-                    "Error: {e}"
-                },
-                _ => rsx! { "" }
             }
         }
     }
@@ -1318,4 +1322,6 @@ fn Verify() -> Element {
         }
     }
 }
+
+
 
