@@ -59,6 +59,8 @@ struct TextToSign(String);
 struct MessageToVerify(Option<Result<SignedMessage, SignatureParseError>>);
 struct SelectedPrivateSigner(Option<PublicKey>);
 struct SelectedPublicSigners(BTreeSet<PublicKey>);
+/// None is "there was no key imported" and "Err(e)" is "the key failed to import"
+struct ImportKeyResult(Option<Result<(), String>>);
 
 #[derive(Clone)]
 struct TableFilter {
@@ -186,6 +188,7 @@ fn App() -> Element {
     });
 
     use_context_provider(|| Signal::new(db));
+    use_context_provider(|| Signal::new(ImportKeyResult(None)));
 
     let style = include_str!("style.css");
 
@@ -705,6 +708,7 @@ fn OtherKeys() -> Element {
     };
 
     let filter = use_context::<Signal<PublicFilter>>();
+    let mut import_key_result = use_context::<Signal<ImportKeyResult>>();
 
     let filter_name = filter.read().0.name.to_lowercase();
     let filter_email = filter.read().0.email.to_lowercase();
@@ -722,6 +726,7 @@ fn OtherKeys() -> Element {
             }
             button {
                 onclick: move |_| {
+                    let mut import_result = import_key_result.write();
                     if let Ok(ref mut db) = dbresult.write().deref_mut() {
                         if let Ok(mut ctx) = ClipboardContext::new() {
                             if let Ok(contents) = ctx.get_contents() {
@@ -730,12 +735,20 @@ fn OtherKeys() -> Element {
                                     if let Ok(key) = PublicKey::from_str(line) {
                                         to_import.push(key)
                                     } else {
+                                        *import_result = ImportKeyResult(Some(Err("Failed to parse key".to_string())));
                                         return;
                                     }
                                 }
                                 let _ = db.add_public_keys(&to_import);
+                                *import_result = ImportKeyResult(Some(Ok(())));
+                            } else {
+                                *import_result = ImportKeyResult(Some(Err("Failed to get contents from clipboard".to_string())));
                             }
+                        } else {
+                            *import_result = ImportKeyResult(Some(Err("Failed to create clipboard context".to_string())));
                         }
+                    } else {
+                        *import_result = ImportKeyResult(Some(Err("Failed to access database".to_string())));
                     }
                 },
                 "Import Public Key from Clipboard"
@@ -817,6 +830,15 @@ fn OtherKeys() -> Element {
                         }
                     }
                 }
+            }
+        }
+        div {
+            class: "data",
+            match import_key_result.read().0.clone() {
+                Some(Err(e)) => rsx! {
+                    "Error: {e}"
+                },
+                _ => rsx! { "" }
             }
         }
     }
