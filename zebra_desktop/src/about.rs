@@ -6,8 +6,8 @@ pub fn About() -> Element {
     rsx! {
         div {
             class: "about",
-            h1 {"Zebra"}
-            p {"Version 1.0.0-alpha"}
+            h1 {"ZebraSign"}
+            p {"Version 1.0.0-beta"}
             p {"A tool for creating and verifying ring signatures."}
             p {
                 class: "copyright_info",
