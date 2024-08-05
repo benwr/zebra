@@ -2,6 +2,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
+use std::time::Duration;
 
 use copypasta::{ClipboardContext, ClipboardProvider};
 use dioxus::prelude::*;
@@ -545,6 +546,7 @@ fn MyKeys() -> Element {
     let new_private_email_val = new_private_email.read().deref().0.clone();
     let new_private_email_copy = new_private_email.read().deref().0.clone();
     let mut selected_private_signer = use_context::<Signal<SelectedPrivateSigner>>();
+    let mut copy_message = use_state(|| None);
     let keys = match dbread.deref() {
         Ok(ref db) => db.visible_contents.my_public_keys.clone(),
         Err(ref e) => {
@@ -668,10 +670,16 @@ fn MyKeys() -> Element {
                                             class: "action_button",
                                             onclick: {
                                                 let k_copy = k.clone();
+                                                let copy_message = copy_message.clone();
                                                 move |e| {
                                                     e.stop_propagation();
                                                     if let Ok(mut ctx) = ClipboardContext::new() {
                                                         let _ = ctx.set_contents(k_copy.clone().into());
+                                                        copy_message.set(Some(format!("Key {} has been copied to the clipboard!", k_copy.holder().name())));
+                                                        let copy_message = copy_message.clone();
+                                                        dioxus_desktop::use_window().set_timeout(move || {
+                                                            copy_message.set(None);
+                                                        }, Duration::from_secs(2));
                                                     }
                                                 }
                                             },
@@ -685,6 +693,14 @@ fn MyKeys() -> Element {
                                     }
                             }
                         }
+                    }
+                }
+            }
+            if let Some(message) = &*copy_message {
+                rsx! {
+                    div {
+                        class: "copy_message",
+                        {message}
                     }
                 }
             }
@@ -1095,7 +1111,7 @@ fn VerificationResults(props: VerificationResultsProps) -> Element {
                     all_verified = false;
                 }
                 Some(v_info) => {
-                    if !v_info.is_verified() {
+                    if (!v_info.is_verified()) {
                         all_verified = false;
                     }
                 }
