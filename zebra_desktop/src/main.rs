@@ -894,6 +894,7 @@ fn PrivateSignerSelect() -> Element {
     let my_keys_clone = my_keys.clone();
 
     let mut selected_private_signer = use_context::<Signal<SelectedPrivateSigner>>();
+    let mut sign_and_copy_status = use_context::<Signal<SignAndCopyStatus>>();
     let k = selected_private_signer.read().deref().0.clone();
     let selected_fingerprint = k.map(|k| k.fingerprint());
 
@@ -904,6 +905,7 @@ fn PrivateSignerSelect() -> Element {
                 let selected_private_signer = selected_signer.deref_mut();
                 if let Some(k) = my_keys_clone.get(&evt.value()) {
                     *selected_private_signer = SelectedPrivateSigner(Some(k.clone()));
+                    *sign_and_copy_status.write() = SignAndCopyStatus(false);
                 }
             },
             for (fp, k) in my_keys {
@@ -928,6 +930,7 @@ struct PublicSignerSelectProps {
 
 fn PublicSignerSelect(props: PublicSignerSelectProps) -> Element {
     let mut selected_public_signers = use_context::<Signal<SelectedPublicSigners>>();
+    let mut sign_and_copy_status = use_context::<Signal<SignAndCopyStatus>>();
     let current_signers = selected_public_signers.read();
     let k = props.k.clone();
     rsx! {
@@ -940,6 +943,7 @@ fn PublicSignerSelect(props: PublicSignerSelectProps) -> Element {
                     } else {
                         signers.0.remove(&props.k);
                     }
+                    *sign_and_copy_status.write() = SignAndCopyStatus(false);
                 },
                 checked: current_signers.0.contains(&k),
                 "type": "checkbox",
