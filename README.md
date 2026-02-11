@@ -77,7 +77,7 @@ the transfer is encrypted end-to-end. We also use
 [secmem-proc](https://github.com/niluxv/secmem-proc) to try to frustrate
 attempts at tracing the process or reading core dumps / swap.
 
-## Copyright Information
+## License
 
 This project is licensed under the [MIT License](LICENSE).
 
@@ -85,8 +85,6 @@ The icon file `zebra_head.png` is a modification of ["Zebra, Ngorogoro"](https:/
 on Flickr. Unlike the rest of this repository, it is released under a [Creative
 Commons Attribution-ShareAlike 2.0 Generic
 License](https://creativecommons.org/licenses/by-sa/2.0/).
-
-Copyright (c) 2025 Kurt Brown.
 
 ## Running the app
 In the root folder, run the following cargo commands to build and run:
