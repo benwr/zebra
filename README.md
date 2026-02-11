@@ -79,16 +79,14 @@ attempts at tracing the process or reading core dumps / swap.
 
 ## Copyright Information
 
+This project is licensed under the [MIT License](LICENSE).
+
 The icon file `zebra_head.png` is a modification of ["Zebra, Ngorogoro"](https://www.flickr.com/photos/woodlouse/3990713395) by Woodlouse
 on Flickr. Unlike the rest of this repository, it is released under a [Creative
 Commons Attribution-ShareAlike 2.0 Generic
 License](https://creativecommons.org/licenses/by-sa/2.0/).
 
-Some of the code in this repository is released under an MIT license.
-Specifically, everything inside of the `age` and `age-core` directories, as
-well as the `sign` and `verify` functions in `zebra_crypto/lib.rs`.
-
-Everything else is the copyright of Kurt Brown.
+Copyright (c) 2025 Kurt Brown.
 
 ## Running the app
 In the root folder, run the following cargo commands to build and run:
