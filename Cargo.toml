@@ -26,6 +26,6 @@ zebra_storage = { path = "zebra_storage" }
 # passphrase. Important to keep up to date with upstream, though.
 age = { git = "https://github.com/benwr/rage.git", branch = "zebra_patch" }
 
-borsh = { version = "1.0.0-alpha.4", features = ["derive"] }
+borsh = { version = "1.6.0", features = ["derive"] }
 rand = { version = "0.8", features = ["getrandom"] }
 zeroize = { version = "1", features = ["zeroize_derive"] }
